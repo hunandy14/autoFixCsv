@@ -19,7 +19,8 @@ function autoFixCsv {
         [string] $Path,
         [Parameter(Position = 1, ParameterSetName = "")]
         [string] $Destination,
-        [switch] $TrimValue
+        [switch] $TrimValue,
+        [switch] $OutNull
     )
     # 檢查
     if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist" }
@@ -35,12 +36,14 @@ function autoFixCsv {
     } $CSV|Export-Csv $Destination -Encoding:(DefEnc) -NoTypeInformation
 
     # 輸出訊息
-    $EncName = DefEnc -FullName
-    Write-Host "From [$EncName]::" -NoNewline
-    Write-Host $Path -NoNewline -ForegroundColor:White
-    Write-Host " convert to"
-    Write-Host "   └─[$EncName]::" -NoNewline
-    Write-Host $Destination -ForegroundColor:Yellow
+    if (!$OutNull) {
+        $EncName = DefEnc -FullName
+        Write-Host "From [$EncName]::" -NoNewline
+        Write-Host $Path -NoNewline -ForegroundColor:White
+        Write-Host " convert to"
+        Write-Host "   └─[$EncName]::" -NoNewline
+        Write-Host $Destination -ForegroundColor:Yellow
+    }
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv' -TrimValue
 # autoFixCsv 'sample1.csv' 'sample1_fix.csv'
