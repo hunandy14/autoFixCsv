@@ -23,10 +23,19 @@ function autoFixCsv {
         [switch] $OutNull
     )
     # 檢查
+    $EncName = DefEnc -FullName
     if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist" }
     $File = Get-Item $Path
     if (!$Destination) { $Destination = $File.BaseName + "_fix" + $File.Extension }
+    
+    # 輸出訊息
+    if (!$OutNull) {
+        Write-Host "From [$EncName]::" -NoNewline
+        Write-Host $Path -NoNewline -ForegroundColor:White
+        Write-Host " convert to..."
 
+    }
+    
     # 轉換CSV檔案
     $CSV = (Import-Csv $Path -Encoding:(DefEnc))
     if ($TrimValue) { # 消除多餘空白
@@ -37,10 +46,6 @@ function autoFixCsv {
 
     # 輸出訊息
     if (!$OutNull) {
-        $EncName = DefEnc -FullName
-        Write-Host "From [$EncName]::" -NoNewline
-        Write-Host $Path -NoNewline -ForegroundColor:White
-        Write-Host " convert to"
         Write-Host "   └─[$EncName]::" -NoNewline
         Write-Host $Destination -ForegroundColor:Yellow
     }
