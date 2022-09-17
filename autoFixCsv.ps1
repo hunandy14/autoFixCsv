@@ -14,11 +14,14 @@ function DefEnc {
 
 # 自動修復CSV檔案格式
 function autoFixCsv {
+    [CmdletBinding(DefaultParameterSetName = "A")]
     param (
         [Parameter(Position = 0, ParameterSetName = "", Mandatory)]
         [string] $Path,
-        [Parameter(Position = 1, ParameterSetName = "")]
+        [Parameter(Position = 1, ParameterSetName = "A")]
         [string] $Destination,
+        [Parameter(Position = 1, ParameterSetName = "B")]
+        [switch] $OutObject,
         [switch] $TrimValue,
         [switch] $OutNull
     )
@@ -27,6 +30,8 @@ function autoFixCsv {
     if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist" }
     $File = Get-Item $Path
     if (!$Destination) { $Destination = $File.BaseName + "_fix" + $File.Extension }
+    if ($OutObject) { $OutNull = $true }
+    
     
     # 輸出訊息
     if (!$OutNull) {
@@ -41,13 +46,17 @@ function autoFixCsv {
         foreach ($Item in $CSV) {
             ($Item.PSObject.Properties)|ForEach-Object{ $_.Value = ($_.Value).trim() }
         }
-    } $CSV|Export-Csv $Destination -Encoding:(DefEnc) -NoTypeInformation
-
-    # 輸出訊息
-    if (!$OutNull) {
-        Write-Host "   └─[$EncName]::" -NoNewline
-        Write-Host $Destination -ForegroundColor:Yellow
+    }
+    if ($OutObject) {
+        return $CSV
+    } else {
+        $CSV|Export-Csv $Destination -Encoding:(DefEnc) -NoTypeInformation
+        # 輸出訊息
+        if (!$OutNull) {
+            Write-Host "   └─[$EncName]::" -NoNewline
+            Write-Host $Destination -ForegroundColor:Yellow
+        }
     }
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv' -TrimValue
-# autoFixCsv 'sample1.csv' 'sample1_fix.csv'
+# autoFixCsv 'sample1.csv' -OutObject
