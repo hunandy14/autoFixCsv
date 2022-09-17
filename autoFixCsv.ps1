@@ -32,8 +32,7 @@ function autoFixCsv {
     if (!$OutNull) {
         Write-Host "From [$EncName]::" -NoNewline
         Write-Host $Path -NoNewline -ForegroundColor:White
-        Write-Host " convert to..."
-
+        Write-Host " convert to ..."
     }
     
     # 轉換CSV檔案
