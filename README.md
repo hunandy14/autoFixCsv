@@ -9,7 +9,7 @@
 
 快速使用
 ```ps1
-irm bit.ly/autoFixCsv|iex; autoFixCsv "sample1.csv"
+irm bit.ly/autoFixCsv|iex; autoFixCsv -TrimValue sample1.csv
 ```
 
 詳細用法
