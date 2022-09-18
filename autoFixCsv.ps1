@@ -118,6 +118,6 @@ function autoFixCsv {
     }
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv'
-autoFixCsv 'sample1.csv' -TrimValue
+# autoFixCsv 'sample1.csv' -TrimValue
 # autoFixCsv 'sample1.csv' -OutObject
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv' -NoTypeInformation
