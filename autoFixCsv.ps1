@@ -121,3 +121,49 @@ function autoFixCsv {
 # autoFixCsv 'sample1.csv' -TrimValue
 # autoFixCsv 'sample1.csv' -OutObject
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv' -NoTypeInformation
+
+
+# 循環 CSV Item 物件
+function ForEachCsvItem {
+    [CmdletBinding(DefaultParameterSetName = "A")]
+    param (
+        # 循環項目的ForEach區塊
+        [Parameter(Position = 0, ParameterSetName = "A", Mandatory)]
+        [Parameter(Position = 1, ParameterSetName = "B", Mandatory)]
+        [scriptblock] $ForEachBlock,
+        # PS表格 轉換為自訂 哈希表
+        [Parameter(Position = 0, ParameterSetName = "B")]
+        [scriptblock] $CvHashtable={
+            [Object] $obj = @{}
+            $i=0; foreach ($it in ($_.PSObject.Properties)) {
+                if ($i -eq 0) { } elseif ($i -eq 1) {
+                    $obj += @{"Title" = $it.Value}
+                } else {
+                    $obj += @{"field_$($i-1)" = $it.Value}
+                } $i=$i+1
+            } return $obj
+        },
+        # 輸入的物件
+        [Parameter(ParameterSetName = "", ValueFromPipeline)]
+        [Object] $_
+    ) BEGIN { } PROCESS {
+    foreach ($_ in $_) {
+        $_ = $CvHashtable.Invoke($_)
+        $ForEachBlock.Invoke($_)
+    } } END { }
+}
+
+# 使用預設轉換函式
+# (autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem{ $_.Title }
+
+# 自訂轉換函式
+(autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem{
+    [Object] $obj = @{}
+    $i=0; foreach ($it in ($_.PSObject.Properties)) {
+        if ($i -eq 0) { } elseif ($i -eq 1) {
+            $obj += @{"Title" = $it.Value}
+        } else {
+            $obj += @{"field_$($i-1)" = $it.Value}
+        } $i=$i+1
+    } return $obj
+}{ $_.Title }
