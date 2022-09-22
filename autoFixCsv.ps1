@@ -143,16 +143,16 @@ function ForEachCsvItem {
 }
 
 # 使用預設轉換函式
-(autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem{ $_.'個人ＩＤ' }
+# (autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem{ $_.'個人ＩＤ' }
 
 # 自訂轉換函式
-(autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem -ConvertObject:{
-    [Object] $obj = @{}
-    $i=0; foreach ($it in ($_.PSObject.Properties)) {
-        if ($i -eq 0) { } elseif ($i -eq 1) {
-            $obj += @{"Title" = $it.Value}
-        } else {
-            $obj += @{"field_$($i-1)" = $it.Value}
-        } $i=$i+1
-    } return $obj
-}{ $_.Title }
+# (autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem -ConvertObject:{
+#     [Object] $obj = @{}
+#     $i=0; foreach ($it in ($_.PSObject.Properties)) {
+#         if ($i -eq 0) { } elseif ($i -eq 1) {
+#             $obj += @{"Title" = $it.Value}
+#         } else {
+#             $obj += @{"field_$($i-1)" = $it.Value}
+#         } $i=$i+1
+#     } return $obj
+# }{ $_.Title }
