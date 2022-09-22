@@ -83,36 +83,29 @@ function autoFixCsv {
     
     # 計時開始
     $Date = (Get-Date); $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
-
     # 轉換CSV檔案
     $CSV = (Import-Csv $Path -Encoding:(DefEnc))
     if ($TrimValue) { # 消除多餘空白
         foreach ($Item in $CSV) {
-            # ($Item.PSObject.Properties)|ForEach-Object{
             foreach ($_ in $Item.PSObject.Properties) {
                 if ($_.Value) { $_.Value = ($_.Value).trim() } else { $_.Value=$null }
             }
         }
     }
+    # 計時停止
+    $StWh.Stop()
+    
+    # 輸出物件
     if ($OutObject) {
         return $CSV
+    # 輸出Csv檔案
     } else {
         $CSV|Export-Csv $Destination -Encoding:(DefEnc) -NoTypeInformation
-        # $count=0
-        # foreach ($it in $CSV) {
-        #     $obj = $it|ConvertTo-Csv -NoTypeInformation
-        #     if ($count -eq 0) {
-        #         $obj[0] > 123.txt
-        #     } $obj[1] >> 123.txt
-        #     $count=$count+1
-        # }
-        
-        # 輸出訊息
+        # 輸出提示訊息
         if (!$OutNull) {
             Write-Host "   └─[$EncName]::" -NoNewline
             Write-Host $Destination -ForegroundColor:Yellow
-            
-            $StWh.Stop(); $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
+            $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
             Write-Host "[$Date] 開始執行, 耗時 [" -NoNewline; Write-Host $Time -NoNewline -ForegroundColor:DarkCyan; Write-Host "] 執行結束"
         }
     }
