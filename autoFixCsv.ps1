@@ -146,23 +146,23 @@ function ForEachCsvItem {
 # (autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem{ $_.'個人ＩＤ' }
 
 # 自訂轉換函式
-$csv = (autoFixCsv 'sample2.csv' -OutObject)
-$ConvertObject={
-    [Object] $Title = @('ID', 'Title')
-    [Object] $obj = @()
-    $title_idx=0
-    $field_idx=1
-    foreach ($it in ($_.PSObject.Properties)) {
-        if($Title[$title_idx]){
-            $Name = $Title[$title_idx]
-            $title_idx=$title_idx+1
-        } else {
-            $Name = "field_$($field_idx)"
-            $field_idx = $field_idx+1
-        } $obj += @{$Name = $it.Value}
-    } return $obj
-}
+# $csv = (autoFixCsv 'sample2.csv' -OutObject)
+# $ConvertObject={
+#     [Object] $Title = @('ID', 'Title')
+#     [Object] $obj = @()
+#     $title_idx=0
+#     $field_idx=1
+#     foreach ($it in ($_.PSObject.Properties)) {
+#         if($Title[$title_idx]){
+#             $Name = $Title[$title_idx]
+#             $title_idx=$title_idx+1
+#         } else {
+#             $Name = "field_$($field_idx)"
+#             $field_idx = $field_idx+1
+#         } $obj += @{$Name = $it.Value}
+#     } return $obj
+# }
 
-$csv|ForEachCsvItem -ConvertObject:$ConvertObject{
-    Write-Host "$($_.ID) | $($_.Title) | $($_.field_1) | $($_.field_2)"
-}
+# $csv|ForEachCsvItem -ConvertObject:$ConvertObject{
+#     Write-Host "$($_.ID) | $($_.Title) | $($_.field_1) | $($_.field_2)"
+# }
