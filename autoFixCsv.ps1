@@ -137,8 +137,8 @@ function ForEachCsvItem {
         [Object] $_
     ) BEGIN { } PROCESS {
     foreach ($_ in $_) {
-        $_ = $ConvertObject.Invoke($_)
-        $ForEachBlock.Invoke($_)
+        $_ = &$ConvertObject($_)
+        &$ForEachBlock($_)
     } } END { }
 }
 
@@ -148,7 +148,7 @@ function ForEachCsvItem {
 # 自訂轉換函式
 # $csv = (autoFixCsv 'sample2.csv' -OutObject)
 # $ConvertObject={
-#     $obj = @()
+#     $obj = @{}
 #     $title_idx=0
 #     $field_idx=1
 #     foreach ($it in ($_.PSObject.Properties)) {
