@@ -1,16 +1,26 @@
-# 當前終端預設編碼文字 (Import-Csv等函式預設值)
-function DefEnc {
-    param(
-        [switch] $FullName
+# 轉換編碼名稱
+function cvEncName {
+    param (
+        [Parameter(Position = 0, ParameterSetName = "")]
+        [String] $EncodingName
     )
-    if (!$FullName) {
-        if ($PSVersionTable.PSVersion.Major -ge 7) { $Result = "UTF8" } else { $Result = "Default" }
-    } else {
-        (([System.Text.Encoding]::Default).EncodingName) -match '\((.*?)\)'|Out-Null
-        $Result = $matches[1]
-    } return $Result
-} # DefEnc -FullName
+    $defEnc = [Text.Encoding]::Default
+    # $defEnc = [Text.Encoding]::GetEncoding([int](PowerShell -C "& {return ([Text.Encoding]::Default).WindowsCodePage}"))
+    if ($EncodingName) {
+        try {
+            $Enc = [Text.Encoding]::GetEncoding($EncodingName)
+        } catch { try {
+                $Enc = [Text.Encoding]::GetEncoding([int]$EncodingName)
+            } catch {
+                $ErrorMsg = "Encoding `"$EncodingName`" is not a supported encoding name."; throw $ErrorMsg
+            } 
+        } # Write-Host "Enc = $($Enc.EncodingName)"
+        return $Enc
+    } # Write-Host "defEnc = $($Enc.EncodingName)"
+    return $defEnc
+} # cvEncName
 
+# 輸出至檔案
 function WriteContent {
     [CmdletBinding(DefaultParameterSetName = "D")]
     param (
@@ -63,16 +73,22 @@ function autoFixCsv {
         [string] $Destination,
         [Parameter(Position = 1, ParameterSetName = "B")]
         [switch] $OutObject,
+        [Parameter(Position = 2, ParameterSetName = "")]
+        [string] $Encoding,
         [switch] $TrimValue,
         [switch] $OutNull
     )
     # 檢查
-    $EncName = DefEnc -FullName
     if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist" }
     $File = Get-Item $Path
     if (!$Destination) { $Destination = $File.BaseName + "_fix" + $File.Extension }
     if ($OutObject) { $OutNull = $true }
     
+    # 處理編碼
+    $Enc  = [Text.Encoding]::Default
+    if ($Encoding) {$Enc = (cvEncName $Encoding)}
+    ($Enc.EncodingName) -match '\((.*?)\)'|Out-Null
+    $EncName = $matches[1]
     
     # 輸出訊息
     if (!$OutNull) {
@@ -84,7 +100,7 @@ function autoFixCsv {
     # 計時開始
     $Date = (Get-Date); $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
     # 轉換CSV檔案
-    $CSV = (Import-Csv $Path -Encoding:(DefEnc))
+    $Csv = [IO.File]::ReadAllLines($Path, $Enc)|ConvertFrom-Csv
     if ($TrimValue) { # 消除多餘空白
         foreach ($Item in $CSV) {
             foreach ($_ in $Item.PSObject.Properties) {
@@ -100,7 +116,7 @@ function autoFixCsv {
         return $CSV
     # 輸出Csv檔案
     } else {
-        $CSV|Export-Csv $Destination -Encoding:(DefEnc) -NoTypeInformation
+        $CSV|ConvertTo-Csv -NoTypeInformation|WriteContent $Destination $Enc.CodePage
         # 輸出提示訊息
         if (!$OutNull) {
             Write-Host "   └─[$EncName]::" -NoNewline
@@ -113,7 +129,7 @@ function autoFixCsv {
 # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv' -TrimValue
 # autoFixCsv 'sample1.csv' -OutObject
-# (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv' -NoTypeInformation
+# (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv'
 
 
 # 循環 CSV Item 物件
