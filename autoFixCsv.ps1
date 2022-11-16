@@ -1,24 +1,6 @@
-# 轉換編碼名稱
-function cvEncName {
-    param (
-        [Parameter(Position = 0, ParameterSetName = "")]
-        [String] $EncodingName
-    )
-    $defEnc = [Text.Encoding]::Default
-    # $defEnc = [Text.Encoding]::GetEncoding([int](PowerShell -C "& {return ([Text.Encoding]::Default).WindowsCodePage}"))
-    if ($EncodingName) {
-        try {
-            $Enc = [Text.Encoding]::GetEncoding($EncodingName)
-        } catch { try {
-                $Enc = [Text.Encoding]::GetEncoding([int]$EncodingName)
-            } catch {
-                $ErrorMsg = "Encoding `"$EncodingName`" is not a supported encoding name."; throw $ErrorMsg
-            } 
-        } # Write-Host "Enc = $($Enc.EncodingName)"
-        return $Enc
-    } # Write-Host "defEnc = $($Enc.EncodingName)"
-    return $defEnc
-} # cvEncName
+# 載入Get-Encoding函式
+Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/Get-Encoding/master/Get-Encoding.ps1'|Invoke-Expression
+
 
 # 輸出至檔案
 function WriteContent {
@@ -61,7 +43,7 @@ function WriteContent {
         [IO.File]::AppendAllText($Path, "$_`n", $Enc);
     }
     END { }
-}
+} # WriteContent
 
 # 自動修復CSV檔案格式
 function autoFixCsv {
@@ -74,55 +56,70 @@ function autoFixCsv {
         [Parameter(Position = 1, ParameterSetName = "B")]
         [switch] $OutObject,
         [Parameter(Position = 2, ParameterSetName = "")]
-        [string] $Encoding,
+        [Text.Encoding] $Encoding,
+        [switch] $UTF8,
         [switch] $TrimValue,
         [switch] $OutNull
     )
     # 檢查
-    if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist" }
+    if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist"; return}
     $File = Get-Item $Path
     if (!$Destination) { $Destination = $File.BaseName + "_fix" + $File.Extension }
-    if ($OutObject) { $OutNull = $true }
+    if ($OutObject) { $OutNull = $true } # 輸出物件的時候不要輸出信息
     
     # 處理編碼
-    $Enc  = [Text.Encoding]::Default
-    if ($Encoding) {$Enc = (cvEncName $Encoding)}
-    ($Enc.EncodingName) -match '\((.*?)\)'|Out-Null
+    if ($Encoding) { # 自訂編碼
+        $Enc = $Encoding
+    } else {
+        if ($UTF8) { # 不帶BOM的UTF8
+            $Enc = New-Object System.Text.UTF8Encoding $False
+        } else { # 系統語言
+            if (!$__SysEnc__) { $Script:__SysEnc__ = [Text.Encoding]::GetEncoding((powershell -nop "([Text.Encoding]::Default).WebName")) }
+            $Enc = $__SysEnc__
+        }
+    } ($Enc.EncodingName) -match '\((.*?)\)'|Out-Null
     $EncName = $matches[1]
+    # 讀取檔案
+    try {
+        $Contact = [IO.File]::ReadAllLines($Path, $Enc)
+    } catch { Write-Error ($Error[$Error.Count-1]); return }
     
     # 輸出訊息
     if (!$OutNull) {
-        Write-Host "From [$EncName]::" -NoNewline
-        Write-Host $Path -NoNewline -ForegroundColor:White
-        Write-Host " convert to ..."
+        Write-Host "From [" -NoNewline
+        Write-Host $EncName -NoNewline -ForegroundColor:Yellow
+        Write-Host "]:: $Path"
+        Write-Host "  └─>[$EncName]:: $Destination"
+        Write-Host "Convert start... " -NoNewline
     }
     
     # 計時開始
-    $Date = (Get-Date); $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
-    # 轉換CSV檔案
-    $Csv = [IO.File]::ReadAllLines($Path, $Enc)|ConvertFrom-Csv
-    if ($TrimValue) { # 消除多餘空白
+    $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
+    
+    # 轉換至物件
+    $Csv = $Contact|ConvertFrom-Csv
+    
+    # 消除多餘空白
+    if ($TrimValue) {
         foreach ($Item in $CSV) {
             foreach ($_ in $Item.PSObject.Properties) {
                 if ($_.Value) { $_.Value = ($_.Value).trim() } else { $_.Value=$null }
             }
         }
     }
-    # 計時停止
-    $StWh.Stop()
     
     # 輸出物件
     if ($OutObject) {
-        return $CSV
+        return $Csv
     # 輸出Csv檔案
     } else {
-        $CSV|ConvertTo-Csv -NoTypeInformation|WriteContent $Destination $Enc.CodePage
+        $Contact = $Csv|ConvertTo-Csv -NoTypeInformation
+        [IO.File]::WriteAllLines($Path, $Contact, $Enc)
         # 輸出提示訊息
         if (!$OutNull) {
-            Write-Host "   └─[$EncName]::" -NoNewline
-            Write-Host $Destination -ForegroundColor:Yellow
+            $StWh.Stop()
             $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
-            Write-Host "[$Date] 開始執行, 耗時 [" -NoNewline; Write-Host $Time -NoNewline -ForegroundColor:DarkCyan; Write-Host "] 執行結束"
+            Write-Host "Finish [" -NoNewline; Write-Host $Time -NoNewline -ForegroundColor:DarkCyan; Write-Host "]"
         }
     }
 } # autoFixCsv 'sample1.csv'
@@ -130,6 +127,7 @@ function autoFixCsv {
 # autoFixCsv 'sample1.csv' -TrimValue
 # autoFixCsv 'sample1.csv' -OutObject
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv'
+# autoFixCsv 'AddItem.csv' -Encoding:(Get-Encoding 932)
 
 
 # 循環 CSV Item 物件
