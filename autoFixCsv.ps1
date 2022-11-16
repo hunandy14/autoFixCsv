@@ -55,6 +55,8 @@ function autoFixCsv {
         [string] $Destination,
         [Parameter(Position = 1, ParameterSetName = "B")]
         [switch] $OutObject,
+        [Parameter(Position = 1, ParameterSetName = "C")]
+        [switch] $Overwrite,
         [Parameter(Position = 2, ParameterSetName = "")]
         [Text.Encoding] $Encoding,
         [switch] $UTF8,
@@ -66,6 +68,10 @@ function autoFixCsv {
     $File = Get-Item $Path
     if (!$Destination) { $Destination = $File.BaseName + "_fix" + $File.Extension }
     if ($OutObject) { $OutNull = $true } # 輸出物件的時候不要輸出信息
+    if ($Destination -eq $Path) {
+        Write-Host "Warring:: The source path is the same as the destination path. If you want to overwrite, Please use `"-Overwrite`"." -ForegroundColor:Yellow; return
+    }
+    if ($Overwrite) { $Destination = $Path } # 覆蓋原檔
     
     # 處理編碼
     if ($Encoding) { # 自訂編碼
@@ -114,7 +120,7 @@ function autoFixCsv {
     # 輸出Csv檔案
     } else {
         $Contact = $Csv|ConvertTo-Csv -NoTypeInformation
-        [IO.File]::WriteAllLines($Path, $Contact, $Enc)
+        [IO.File]::WriteAllLines($Destination, $Contact, $Enc)
         # 輸出提示訊息
         if (!$OutNull) {
             $StWh.Stop()
@@ -125,10 +131,10 @@ function autoFixCsv {
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv' -TrimValue
-# autoFixCsv 'sample1.csv' -OutObject
+# autoFixCsv 'sample1.csv' -OutObject -TrimValue -UTF8
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv'
 # autoFixCsv 'AddItem.csv' -Encoding:(Get-Encoding 932)
-
+# autoFixCsv 'sample1.csv' -Overwrite -UTF8
 
 # 循環 CSV Item 物件
 function ForEachCsvItem {
