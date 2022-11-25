@@ -117,7 +117,10 @@ function autoFixCsv {
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
     # 消除相同
-    if ($Unique) { $Csv = $Csv|Sort-Object -Property $Unique -Unique}
+    if ($Unique) {
+        $CsvUq = $Csv|Sort-Object -Property $Unique -Unique
+        $Csv = ([Linq.Enumerable]::Intersect([object[]]$Csv, [object[]]$CsvUq))
+    }
     # 取出特定項目
     if ($Select) { $Csv = $Csv|Select-Object -Property $Unique}
     
@@ -156,6 +159,8 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Sort ID
 # autoFixCsv 'sort.csv' -Sort ID,A,B
 # autoFixCsv 'sort.csv' -Sort ID,A,B -Unique A
+# autoFixCsv 'sort.csv' -Sort A,B -Unique ID
+# autoFixCsv 'sort.csv' -Unique C
 
 # 循環 CSV Item 物件
 function ForEachCsvItem {
