@@ -117,9 +117,9 @@ function autoFixCsv {
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
     # 消除相同
-    if ($Unique) { $Csv = $Csv|Sort-Object -Property $Unique -Unique}
+    if ($Unique) { $Csv = $Csv|Select-Object -Property $Unique -Unique}
     # 取出特定項目
-    if ($Select) { $Csv = $Csv|Sort-Object -Property $Unique}
+    if ($Select) { $Csv = $Csv|Select-Object -Property $Unique}
     
     # 消除多餘空白
     if ($TrimValue) {
