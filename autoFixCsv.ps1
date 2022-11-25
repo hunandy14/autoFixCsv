@@ -59,11 +59,11 @@ function autoFixCsv {
         [switch] $Overwrite,
         
         [Parameter(ParameterSetName = "")]
-        [Object] $Sort,
+        [object] $Sort,
         [Parameter(ParameterSetName = "")]
-        [string] $Unique,
+        [object] $Unique,
         [Parameter(ParameterSetName = "")]
-        [string] $Select,
+        [object] $Select,
         
         [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
@@ -118,11 +118,20 @@ function autoFixCsv {
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
     # 消除相同
     if ($Unique) {
-        $CsvUq = $Csv|Sort-Object -Property $Unique -Unique
-        $Csv = ([Linq.Enumerable]::Intersect([object[]]$Csv, [object[]]$CsvUq))
+        # 方法1 (能刪除重複，但在超大數據下似乎不能保留當前順序的第一個)
+        # $CsvUq = $Csv|Sort-Object -Property $Unique -Unique
+        # $Csv = ([Linq.Enumerable]::Intersect([object[]]$Csv, [object[]]$CsvUq))
+        # 方法2
+        $hashTable = @{}; $Array = @()
+        $Csv|ForEach-Object{
+            $item = $_|Select-Object -Property $Unique
+            $str  = ($item|ConvertTo-Csv -NoTypeInformation)[1]
+            try { $hashTable.Add($str, "");$flag=$True } catch { $flag=$False }
+            if ($flag) { $Array += $_ }
+        }; $Csv = $Array
     }
     # 取出特定項目
-    if ($Select) { $Csv = $Csv|Select-Object -Property $Unique}
+    if ($Select) { $Csv = $Csv|Select-Object -Property $Select}
     
     # 消除多餘空白
     if ($TrimValue) {
@@ -160,7 +169,8 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Sort ID,A,B
 # autoFixCsv 'sort.csv' -Sort ID,A,B -Unique A
 # autoFixCsv 'sort.csv' -Sort A,B -Unique ID
-# autoFixCsv 'sort.csv' -Unique C
+# autoFixCsv 'sort.csv' -Unique C,D
+# autoFixCsv 'sort.csv' -Unique E -UTF8
 
 # 循環 CSV Item 物件
 function ForEachCsvItem {
