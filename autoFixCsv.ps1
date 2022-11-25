@@ -62,6 +62,8 @@ function autoFixCsv {
         [Object] $Sort,
         [Parameter(ParameterSetName = "")]
         [string] $Unique,
+        [Parameter(ParameterSetName = "")]
+        [string] $Select,
         
         [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
@@ -116,6 +118,8 @@ function autoFixCsv {
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
     # 消除相同
     if ($Unique) { $Csv = $Csv|Sort-Object -Property $Unique -Unique}
+    # 取出特定項目
+    if ($Select) { $Csv = $Csv|Sort-Object -Property $Unique}
     
     # 消除多餘空白
     if ($TrimValue) {
