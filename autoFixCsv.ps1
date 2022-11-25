@@ -57,8 +57,15 @@ function autoFixCsv {
         [switch] $OutObject,
         [Parameter(Position = 1, ParameterSetName = "C")]
         [switch] $Overwrite,
-        [Parameter(Position = 2, ParameterSetName = "")]
+        
+        [Parameter(ParameterSetName = "")]
+        [Object] $Sort,
+        [Parameter(ParameterSetName = "")]
+        [string] $Unique,
+        
+        [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
+        
         [switch] $UTF8,
         [switch] $TrimValue,
         [switch] $OutNull
@@ -95,7 +102,7 @@ function autoFixCsv {
         Write-Host "From [" -NoNewline
         Write-Host $EncName -NoNewline -ForegroundColor:Yellow
         Write-Host "]:: $Path"
-        Write-Host "  └─>[$EncName]:: $Destination"
+        Write-Host "  └──[$EncName]:: $Destination"
         Write-Host "Convert start... " -NoNewline
     }
     
@@ -104,6 +111,11 @@ function autoFixCsv {
     
     # 轉換至物件
     $Csv = $Contact|ConvertFrom-Csv
+    
+    # 排序
+    if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
+    # 消除相同
+    if ($Unique) { $Csv = $Csv|Sort-Object -Property $Unique -Unique}
     
     # 消除多餘空白
     if ($TrimValue) {
@@ -120,6 +132,7 @@ function autoFixCsv {
     # 輸出Csv檔案
     } else {
         $Contact = $Csv|ConvertTo-Csv -NoTypeInformation
+        if ($Destination -and !(Test-Path $Destination)) { New-Item $Destination -Force|Out-Null }
         [IO.File]::WriteAllLines($Destination, $Contact, $Enc)
         # 輸出提示訊息
         if (!$OutNull) {
@@ -130,11 +143,15 @@ function autoFixCsv {
     }
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv'
-# autoFixCsv 'sample1.csv' -TrimValue
+# autoFixCsv 'sample1.csv' -TrimValue -UTF8
 # autoFixCsv 'sample1.csv' -OutObject -TrimValue -UTF8
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv'
 # autoFixCsv 'AddItem.csv' -Encoding:(Get-Encoding 932)
 # autoFixCsv 'sample1.csv' -Overwrite -UTF8
+# autoFixCsv 'sort.csv' -Unique A
+# autoFixCsv 'sort.csv' -Sort ID
+# autoFixCsv 'sort.csv' -Sort ID,A,B
+# autoFixCsv 'sort.csv' -Sort ID,A,B -Unique A
 
 # 循環 CSV Item 物件
 function ForEachCsvItem {
