@@ -69,6 +69,7 @@ function autoFixCsv {
         [Text.Encoding] $Encoding,
         
         [switch] $UTF8,
+        [switch] $UTF8BOM,
         [switch] $TrimValue,
         [switch] $OutNull
     )
@@ -88,6 +89,8 @@ function autoFixCsv {
     } else {
         if ($UTF8) { # 不帶BOM的UTF8
             $Enc = New-Object System.Text.UTF8Encoding $False
+        } elseif ($UTF8BOM) {
+            $Enc = New-Object System.Text.UTF8Encoding $True
         } else { # 系統語言
             if (!$__SysEnc__) { $Script:__SysEnc__ = [Text.Encoding]::GetEncoding((powershell -nop "([Text.Encoding]::Default).WebName")) }
             $Enc = $__SysEnc__
@@ -164,12 +167,14 @@ function autoFixCsv {
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv'
 # autoFixCsv 'AddItem.csv' -Encoding:(Get-Encoding 932)
 # autoFixCsv 'sample1.csv' -Overwrite -UTF8
+# autoFixCsv 'sample1.csv' -Overwrite -UTF8BOM
 # autoFixCsv 'sort.csv' -Unique A
 # autoFixCsv 'sort.csv' -Sort ID
 # autoFixCsv 'sort.csv' -Sort ID,A,B
 # autoFixCsv 'sort.csv' -Sort ID,A,B -Unique A
 # autoFixCsv 'sort.csv' -Sort A,B -Unique ID
 # autoFixCsv 'sort.csv' -Unique C,D
+# autoFixCsv 'sort.csv' -Select A,B
 # autoFixCsv 'sort.csv' -Unique E -UTF8
 
 # 循環 CSV Item 物件
