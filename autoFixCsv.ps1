@@ -33,7 +33,7 @@ function autoFixCsv {
     # 檢查
     [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
     $Path = [System.IO.Path]::GetFullPath($Path)
-    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist" -ErrorAction Stop }
+    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist" -ErrorAction:Stop }
     if (!$Destination) {
         $File = Get-Item $Path
         $Destination = ($File.BaseName + "_fix" + $File.Extension)
@@ -59,7 +59,7 @@ function autoFixCsv {
     # 讀取檔案
     try {
         $Contact = [IO.File]::ReadAllLines($Path, $Enc)
-    } catch { Write-Error $PSItem -ErrorAction Stop }
+    } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
     # 輸出訊息
     if (!$OutNull) {
@@ -77,7 +77,7 @@ function autoFixCsv {
     # 轉換至物件
     try {
         $Csv = $Contact|ConvertFrom-Csv
-    } catch { Write-Error $PSItem -ErrorAction Stop }
+    } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
@@ -146,6 +146,10 @@ function autoFixCsv {
 # autoFixCsv 'XXXXXXX.csv'
 # autoFixCsv 'sample2.csv'
 # autoFixCsv 'sort.csv' -Unique G
+# try { autoFixCsv 'XXXXXXX.csv' } catch { Write-Output "Catch:: " ($Error[$Error.Count-1]) }
+
+
+
 
 # 循環 CSV Item 物件 (並由陣列轉換為哈希表)
 function ForEachCsvItem {
