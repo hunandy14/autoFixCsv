@@ -29,14 +29,20 @@ function autoFixCsv {
         [switch] $TrimValue,
         [switch] $OutNull
     )
+    
     # 檢查
-    if (!(Test-Path -PathType:Leaf $Path)) { throw "Input file does not exist"; return}
-    $File = Get-Item $Path
-    if (!$Destination) { $Destination = $File.BaseName + "_fix" + $File.Extension }
-    if ($OutObject) { $OutNull = $true } # 輸出物件的時候不要輸出信息
-    if ($Destination -eq $Path) {
-        Write-Host "Warring:: The source path is the same as the destination path. If you want to overwrite, Please use `"-Overwrite`"." -ForegroundColor:Yellow; return
+    if (!(Test-Path -PathType:Leaf $Path)) {
+        throw "Input file does not exist"; return
+    } else {
+        [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
+        $Path = [System.IO.Path]::GetFullPath($Path)
     }
+    if (!$Destination) {
+        $File = Get-Item $Path
+        $Destination = [System.IO.Path]::GetFullPath($File.BaseName + "_fix" + $File.Extension)
+    }
+    if ($OutObject) { $OutNull = $true } # 輸出物件的時候不要輸出信息
+    if ($Destination -eq $Path) { Write-Host "Warring:: The source path is the same as the destination path. If you want to overwrite, Please use `"-Overwrite`"." -ForegroundColor:Yellow; return }
     if ($Overwrite) { $Destination = $Path } # 覆蓋原檔
     
     # 處理編碼
@@ -134,6 +140,7 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique C,D
 # autoFixCsv 'sort.csv' -Select A,B
 # autoFixCsv 'sort.csv' -Unique E -UTF8
+# autoFixCsv 'sample3.csv' -UTF8
 # 例外測試
 # autoFixCsv 'sample2.csv'
 # autoFixCsv 'sort.csv' -Unique G
