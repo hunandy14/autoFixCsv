@@ -115,7 +115,9 @@ function autoFixCsv {
     $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
     
     # 轉換至物件
-    $Csv = $Contact|ConvertFrom-Csv
+    try {
+        $Csv = $Contact|ConvertFrom-Csv
+    } catch { Write-Error ($Error[$Error.Count-1]); return }
     
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
@@ -176,6 +178,9 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique C,D
 # autoFixCsv 'sort.csv' -Select A,B
 # autoFixCsv 'sort.csv' -Unique E -UTF8
+# 例外測試
+# autoFixCsv 'sample2.csv'
+# autoFixCsv 'sort.csv' -Unique G
 
 # 循環 CSV Item 物件
 function ForEachCsvItem {
