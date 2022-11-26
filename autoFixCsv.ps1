@@ -31,12 +31,9 @@ function autoFixCsv {
     )
     
     # 檢查
-    if (!(Test-Path -PathType:Leaf $Path)) {
-        throw "Input file does not exist"; return
-    } else {
-        [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
-        $Path = [System.IO.Path]::GetFullPath($Path)
-    }
+    [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
+    $Path = [System.IO.Path]::GetFullPath($Path)
+    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist"; return }
     if (!$Destination) {
         $File = Get-Item $Path
         $Destination = [System.IO.Path]::GetFullPath($File.BaseName + "_fix" + $File.Extension)
@@ -142,6 +139,7 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique E -UTF8
 # autoFixCsv 'sample3.csv' -UTF8
 # 例外測試
+# autoFixCsv 'XXXXXXX.csv'
 # autoFixCsv 'sample2.csv'
 # autoFixCsv 'sort.csv' -Unique G
 
