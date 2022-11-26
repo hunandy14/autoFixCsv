@@ -33,10 +33,10 @@ function autoFixCsv {
     # 檢查
     [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
     $Path = [System.IO.Path]::GetFullPath($Path)
-    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist"; return }
+    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist" -ErrorAction Stop }
     if (!$Destination) {
         $File = Get-Item $Path
-        $Destination = [System.IO.Path]::GetFullPath($File.BaseName + "_fix" + $File.Extension)
+        $Destination = ($File.BaseName + "_fix" + $File.Extension)
     }
     if ($OutObject) { $OutNull = $true } # 輸出物件的時候不要輸出信息
     if ($Destination -eq $Path) { Write-Host "Warring:: The source path is the same as the destination path. If you want to overwrite, Please use `"-Overwrite`"." -ForegroundColor:Yellow; return }
@@ -59,14 +59,15 @@ function autoFixCsv {
     # 讀取檔案
     try {
         $Contact = [IO.File]::ReadAllLines($Path, $Enc)
-    } catch { Write-Error ($Error[$Error.Count-1]); return }
+    } catch { Write-Error $PSItem -ErrorAction Stop }
     
     # 輸出訊息
     if (!$OutNull) {
         Write-Host "From [" -NoNewline
         Write-Host $EncName -NoNewline -ForegroundColor:Yellow
         Write-Host "]:: $Path"
-        Write-Host "  └──[$EncName]:: $Destination"
+        Write-Host "  └──[$EncName]:: " -NoNewline
+        Write-Host $Destination -ForegroundColor:White
         Write-Host "Convert start... " -NoNewline
     }
     
@@ -76,7 +77,7 @@ function autoFixCsv {
     # 轉換至物件
     try {
         $Csv = $Contact|ConvertFrom-Csv
-    } catch { Write-Error ($Error[$Error.Count-1]); return }
+    } catch { Write-Error $PSItem -ErrorAction Stop }
     
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
@@ -112,17 +113,20 @@ function autoFixCsv {
     # 輸出Csv檔案
     } else {
         $Contact = $Csv|ConvertTo-Csv -NoTypeInformation
+        $Destination = [System.IO.Path]::GetFullPath($Destination)
         if ($Destination -and !(Test-Path $Destination)) { New-Item $Destination -Force|Out-Null }
         [IO.File]::WriteAllLines($Destination, $Contact, $Enc)
         # 輸出提示訊息
         if (!$OutNull) {
             $StWh.Stop()
             $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
-            Write-Host "Finish [" -NoNewline; Write-Host $Time -NoNewline -ForegroundColor:DarkCyan; Write-Host "]"
+            Write-Host "Finish [" -NoNewline; Write-Host $Time -NoNewline; Write-Host "]"
         }
     }
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv'
+# autoFixCsv 'sample1.csv' 'sample1_fix.csv'
+# autoFixCsv 'sample1.csv' 'Z:\sample1_fix.csv'
 # autoFixCsv 'sample1.csv' -TrimValue -UTF8
 # autoFixCsv 'sample1.csv' -OutObject -TrimValue -UTF8
 # (autoFixCsv 'sample1.csv' -OutObject)|Export-Csv 'sample1_fix.csv'
