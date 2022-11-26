@@ -1,50 +1,6 @@
 # 載入Get-Encoding函式
 Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/Get-Encoding/master/Get-Encoding.ps1'|Invoke-Expression
 
-
-# 輸出至檔案
-function WriteContent {
-    [CmdletBinding(DefaultParameterSetName = "D")]
-    param (
-        [Parameter(Mandatory, Position = 0, ParameterSetName = "")]
-        [string] $Path,
-        [Parameter(Position = 1, ParameterSetName = "C")]
-        [int] $Encoding,
-        [Parameter(Position = 1, ParameterSetName = "D")]
-        [switch] $DefaultEncoding,
-
-        [Parameter(ParameterSetName = "")]
-        [switch] $NoNewline,
-        [Parameter(ParameterSetName = "")]
-        [switch] $Append,
-        [Parameter(ValueFromPipeline, ParameterSetName = "")]
-        [System.Object] $InputObject
-    )
-    BEGIN {
-        # 獲取編碼
-        if ($DefaultEncoding) { # 使用當前系統編碼
-            # $Enc = [Text.Encoding]::Default
-            $Enc = PowerShell.exe -C "& {return [Text.Encoding]::Default}"
-        } elseif ((!$Encoding) ) { # 完全不指定預設
-            $Enc = New-Object System.Text.UTF8Encoding $False
-            # $Enc = [Text.Encoding]::Default
-        } elseif ($Encoding -eq 65001) { # 指定UTF8
-            $Enc = New-Object System.Text.UTF8Encoding $False
-        } else { # 使用者指定
-            $Enc = [Text.Encoding]::GetEncoding($Encoding)
-        }
-
-        # 建立檔案
-        if (!$Append) { 
-            (New-Item $Path -ItemType:File -Force) | Out-Null
-        } $Path = [IO.Path]::GetFullPath($Path)
-        
-    } process{
-        [IO.File]::AppendAllText($Path, "$_`n", $Enc);
-    }
-    END { }
-} # WriteContent
-
 # 自動修復CSV檔案格式
 function autoFixCsv {
     [CmdletBinding(DefaultParameterSetName = "A")]
@@ -182,7 +138,7 @@ function autoFixCsv {
 # autoFixCsv 'sample2.csv'
 # autoFixCsv 'sort.csv' -Unique G
 
-# 循環 CSV Item 物件
+# 循環 CSV Item 物件 (並由陣列轉換為哈希表)
 function ForEachCsvItem {
     [CmdletBinding(DefaultParameterSetName = "A")]
     param (
@@ -200,19 +156,19 @@ function ForEachCsvItem {
         },
         # 輸入的物件
         [Parameter(ParameterSetName = "", ValueFromPipeline)]
-        [Object] $_
+        [Object] $InputObject
     ) BEGIN { } PROCESS {
-    foreach ($_ in $_) {
-        $_ = &$ConvertObject($_)
-        &$ForEachBlock($_)
+    foreach ($_ in $InputObject) {
+        $obj = &$ConvertObject($_)
+        &$ForEachBlock($obj)
     } } END { }
 }
 
 # 使用預設轉換函式
-# (autoFixCsv 'sample2.csv' -OutObject)|ForEachCsvItem{ $_.'個人ＩＤ' }
+# (autoFixCsv 'sample2.csv' -OutObject -UTF8)|ForEachCsvItem{ $_.'個人ＩＤ' }
 
 # 自訂轉換函式
-# $csv = (autoFixCsv 'sample2.csv' -OutObject)
+# $csv = (autoFixCsv 'sample2.csv' -OutObject -UTF8)
 # $ConvertObject={
 #     $obj = @{}
 #     $title_idx=0
