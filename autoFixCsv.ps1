@@ -45,8 +45,8 @@ function autoFixCsv {
     # 處理編碼
     if ($Encoding) { # 自訂編碼
         $Enc = $Encoding
-    } else {
-        if ($UTF8) { # 不帶BOM的UTF8
+    } else { # 預選項編碼
+        if ($UTF8) {
             $Enc = New-Object System.Text.UTF8Encoding $False
         } elseif ($UTF8BOM) {
             $Enc = New-Object System.Text.UTF8Encoding $True
@@ -57,8 +57,8 @@ function autoFixCsv {
     } ($Enc.EncodingName) -match '\((.*?)\)'|Out-Null
     $EncName = $matches[1]
     # 讀取檔案
-    try {
-        $Contact = [IO.File]::ReadAllLines($Path, $Enc)
+    try { # 阻止編碼錯誤時繼續執行代碼
+        $Content = [IO.File]::ReadAllLines($Path, $Enc)
     } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
     # 輸出訊息
@@ -76,7 +76,7 @@ function autoFixCsv {
     
     # 轉換至物件
     try {
-        $Csv = $Contact|ConvertFrom-Csv
+        $Csv = $Content|ConvertFrom-Csv
     } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
     # 排序
@@ -112,10 +112,10 @@ function autoFixCsv {
         return $Csv
     # 輸出Csv檔案
     } else {
-        $Contact = $Csv|ConvertTo-Csv -NoTypeInformation
+        $Content = $Csv|ConvertTo-Csv -NoTypeInformation
         $Destination = [System.IO.Path]::GetFullPath($Destination)
         if ($Destination -and !(Test-Path $Destination)) { New-Item $Destination -Force|Out-Null }
-        [IO.File]::WriteAllLines($Destination, $Contact, $Enc)
+        [IO.File]::WriteAllLines($Destination, $Content, $Enc)
         # 輸出提示訊息
         if (!$OutNull) {
             $StWh.Stop()
