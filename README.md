@@ -35,6 +35,7 @@ autoFixCsv 'sample1.csv' 'sample1_fix.csv'
 # 排序
 autoFixCsv 'sort.csv' -Sort ID,A,B
 # 去除重複
+autoFixCsv 'sort.csv' -Unique ""
 autoFixCsv 'sort.csv' -Unique C,D
 # 選出特定項目
 autoFixCsv 'sort.csv' -Select A,B

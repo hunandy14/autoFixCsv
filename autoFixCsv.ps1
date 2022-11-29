@@ -82,14 +82,14 @@ function autoFixCsv {
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
     # 消除相同
-    if ($Unique) {
+    if ($Unique -or ($Unique -eq "")) {
         # 方法1 (能刪除重複，但在超大數據下似乎不能保留當前順序的第一個)
         # $CsvUq = $Csv|Sort-Object -Property $Unique -Unique
         # $Csv = ([Linq.Enumerable]::Intersect([object[]]$Csv, [object[]]$CsvUq))
         # 方法2
         $hashTable = @{}; $Array = @()
         $Csv|ForEach-Object{
-            $item = $_|Select-Object -Property $Unique
+            if($Unique -eq "") { $item = $_ } else { $item = $_|Select-Object -Property $Unique }
             $str  = ($item|ConvertTo-Csv -NoTypeInformation)[1]
             try { $hashTable.Add($str, "");$flag=$True } catch { $flag=$False }
             if ($flag) { $Array += $_ }
@@ -142,6 +142,7 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Select A,B
 # autoFixCsv 'sort.csv' -Unique E -UTF8
 # autoFixCsv 'sample3.csv' -UTF8
+# autoFixCsv 'sort.csv' -Unique "" -UTF8
 # 例外測試
 # autoFixCsv 'XXXXXXX.csv'
 # autoFixCsv 'sample2.csv'
