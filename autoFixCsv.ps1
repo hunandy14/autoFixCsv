@@ -29,7 +29,10 @@ function autoFixCsv {
         [switch] $UTF8BOM,
         [switch] $TrimValue,
         [switch] $AddIndex,
-        [switch] $OutNull
+        [switch] $OutNull,
+        
+        [Parameter(ParameterSetName = "")]
+        [scriptblock] $ScriptBlock
     )
     # 檢查
     [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
@@ -106,7 +109,7 @@ function autoFixCsv {
             } else { # 統計總共有多少重複的
                 if ($Count) { $Array[$hashTable.$str].Count++ }
             }
-        }; $Csv = $Array
+        }; $Csv=$Array; $Array=$null
     }
     
     # 取出特定項目
@@ -114,7 +117,7 @@ function autoFixCsv {
     
     # 消除多餘空白
     if ($TrimValue) {
-        foreach ($Item in $CSV) {
+        foreach ($Item in $Csv) {
             foreach ($_ in $Item.PSObject.Properties) {
                 if ($_.Value) { $_.Value = ($_.Value).trim() } else { $_.Value=$null }
             }
@@ -123,10 +126,13 @@ function autoFixCsv {
     
     # 追加流水番號
     if ($AddIndex) {
-        for ($i = 0; $i -lt $Array.Count; $i++) {
-            $Array[$i] = $Array[$i]|Select-Object @{Name='Index';Expression={($i+1)}},*
+        for ($i = 0; $i -lt $Csv.Count; $i++) {
+            $Csv[$i] = $Csv[$i]|Select-Object @{Name='Index';Expression={($i+1)}},*
         }
     }
+    
+    # 自訂功能
+    if ($ScriptBlock) { & $ScriptBlock }
     
     
     
@@ -169,6 +175,13 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique "" -UTF8
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
+
+# 測試自訂功能
+# autoFixCsv 'sort.csv' -Unique "A" -Select "A" -UTF8BOM -ScriptBlock{
+#     for ($i = 0; $i -lt $Csv.Count; $i++) {
+#         $Csv[$i] = $Csv[$i]|Select-Object @{Name='Index';Expression={($i+1)}},*
+#     }
+# }
 
 # 例外測試
 # autoFixCsv 'XXXXXXX.csv'

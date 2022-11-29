@@ -44,6 +44,14 @@ autoFixCsv 'sort.csv' -Select A,B
 
 # 追加流水番號
 autoFixCsv 'sort.csv' -Unique "" -Index
+
+# 自訂功能 -> 新增流水番號 (物件變數是$Csv)
+autoFixCsv 'sort.csv' -ScriptBlock{
+    for ($i = 0; $i -lt $Csv.Count; $i++) {
+        $Csv[$i] = $Csv[$i]|Select-Object @{Name='Index';Expression={($i+1)}},*
+    }
+}
+
 ```
 
 
