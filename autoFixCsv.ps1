@@ -113,7 +113,13 @@ function autoFixCsv {
     }
     
     # 取出特定項目
-    if ($Select) { $Csv = $Csv|Select-Object -Property $Select}
+    if ($Select) { 
+        if ($Count) {
+            $Csv = $Csv|Select-Object -Property Count,$Select
+        } else {
+            $Csv = $Csv|Select-Object -Property $Select
+        }
+    }
     
     # 消除多餘空白
     if ($TrimValue) {
@@ -175,6 +181,7 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique "" -UTF8
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
+# autoFixCsv 'sort.csv' -Unique "A" -Select "A" -Count -UTF8BOM
 
 # 測試自訂功能
 # autoFixCsv 'sort.csv' -Unique "A" -Select "A" -UTF8BOM -ScriptBlock{
