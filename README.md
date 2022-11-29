@@ -37,8 +37,13 @@ autoFixCsv 'sort.csv' -Sort ID,A,B
 # 去除重複
 autoFixCsv 'sort.csv' -Unique ""
 autoFixCsv 'sort.csv' -Unique C,D
+# 去除重複並統計重複數量有多少
+autoFixCsv 'sort.csv' -Unique "" -Count
 # 選出特定項目
 autoFixCsv 'sort.csv' -Select A,B
+
+# 追加流水番號
+autoFixCsv 'sort.csv' -Unique "" -Index
 ```
 
 

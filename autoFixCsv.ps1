@@ -18,6 +18,7 @@ function autoFixCsv {
         [object] $Sort,
         [Parameter(ParameterSetName = "")]
         [object] $Unique,
+        [switch] $Count, # 統計有多少重複的 (Unique啟用時才能統計)
         [Parameter(ParameterSetName = "")]
         [object] $Select,
         
@@ -27,9 +28,9 @@ function autoFixCsv {
         [switch] $UTF8,
         [switch] $UTF8BOM,
         [switch] $TrimValue,
+        [switch] $AddIndex,
         [switch] $OutNull
     )
-    
     # 檢查
     [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
     $Path = [System.IO.Path]::GetFullPath($Path)
@@ -56,6 +57,7 @@ function autoFixCsv {
         }
     } ($Enc.EncodingName) -match '\((.*?)\)'|Out-Null
     $EncName = $matches[1]
+    
     # 讀取檔案
     try { # 阻止編碼錯誤時繼續執行代碼
         $Content = [IO.File]::ReadAllLines($Path, $Enc)
@@ -79,22 +81,34 @@ function autoFixCsv {
         $Csv = $Content|ConvertFrom-Csv
     } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
+    
+    
     # 排序
     if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
+    
     # 消除相同
     if ($Unique -or ($Unique -eq "")) {
         # 方法1 (能刪除重複，但在超大數據下似乎不能保留當前順序的第一個)
         # $CsvUq = $Csv|Sort-Object -Property $Unique -Unique
         # $Csv = ([Linq.Enumerable]::Intersect([object[]]$Csv, [object[]]$CsvUq))
         # 方法2
-        $hashTable = @{}; $Array = @()
+        $hashTable = @{}; $Array = @(); $idx=0
         $Csv|ForEach-Object{
             if($Unique -eq "") { $item = $_ } else { $item = $_|Select-Object -Property $Unique }
             $str  = ($item|ConvertTo-Csv -NoTypeInformation)[1]
-            try { $hashTable.Add($str, "");$flag=$True } catch { $flag=$False }
-            if ($flag) { $Array += $_ }
+            try { $hashTable.Add($str, $idx);$flag=$True } catch { $flag=$False }
+            if ($flag) {
+                if ($Count) { # 統計總共有多少重複的
+                    $item = $_|Select-Object @{Name='Count';Expression={1}},*
+                } else {
+                    $item = $_
+                } $Array += $item; $idx++
+            } else { # 統計總共有多少重複的
+                if ($Count) { $Array[$hashTable.$str].Count++ }
+            }
         }; $Csv = $Array
     }
+    
     # 取出特定項目
     if ($Select) { $Csv = $Csv|Select-Object -Property $Select}
     
@@ -107,9 +121,19 @@ function autoFixCsv {
         }
     }
     
+    # 追加流水番號
+    if ($AddIndex) {
+        for ($i = 0; $i -lt $Array.Count; $i++) {
+            $Array[$i] = $Array[$i]|Select-Object @{Name='Index';Expression={($i+1)}},*
+        }
+    }
+    
+    
+    
     # 輸出物件
     if ($OutObject) {
         return $Csv
+        
     # 輸出Csv檔案
     } else {
         $Content = $Csv|ConvertTo-Csv -NoTypeInformation
@@ -133,7 +157,7 @@ function autoFixCsv {
 # autoFixCsv 'AddItem.csv' -Encoding:(Get-Encoding 932)
 # autoFixCsv 'sample1.csv' -Overwrite -UTF8
 # autoFixCsv 'sample1.csv' -Overwrite -UTF8BOM
-# autoFixCsv 'sort.csv' -Unique A
+# autoFixCsv 'sort.csv' -Unique A -UTF8
 # autoFixCsv 'sort.csv' -Sort ID
 # autoFixCsv 'sort.csv' -Sort ID,A,B
 # autoFixCsv 'sort.csv' -Sort ID,A,B -Unique A
@@ -143,6 +167,9 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique E -UTF8
 # autoFixCsv 'sample3.csv' -UTF8
 # autoFixCsv 'sort.csv' -Unique "" -UTF8
+# autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM
+# autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
+
 # 例外測試
 # autoFixCsv 'XXXXXXX.csv'
 # autoFixCsv 'sample2.csv'
