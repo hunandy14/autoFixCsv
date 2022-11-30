@@ -155,7 +155,7 @@ function autoFixCsv {
             for ($i = 0; $i -lt $Csv.Count; $i++) {
                 $Item = $Csv[$i]|Select-Object $SelectItem
                 $ItemArr = $ConvertToArray|Invoke-Expression
-                if ($ItemArr) {
+                if ($ItemArr -and $ItemValue) {
                     $IsEqual = !(Compare-Object $ItemArr $ItemValue -SyncWindow 0)
                     if($IsEqual){ $Array += $Csv[$i] }
                 }
