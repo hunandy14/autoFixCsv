@@ -23,9 +23,9 @@ function autoFixCsv {
         [object] $Select,
         
         [Parameter(ParameterSetName = "")]
-        [object] $SelectItem,
+        [object] $WhereField,
         [Parameter(ParameterSetName = "")]
-        [object] $ItemValue,
+        [object] $WhereValue,
         
         [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
@@ -143,37 +143,39 @@ function autoFixCsv {
     }
     
     # 取出特定數值的項目
-    if ($SelectItem) {
+    if ($WhereField) {
         $Array = @() # 寫在這裡是為了卡住如果ItemValue是NULL至少把輸出變成空白
-        if ($null -ne $ItemValue ) {
+        if ($null -ne $WhereValue ) {
             # 輸入如果不是陣列則將他轉微陣列
-            if ($SelectItem -isnot [array]) { $SelectItem = @($SelectItem) }
-            if ($ItemValue -isnot [array]) { $ItemValue = @($ItemValue) }
+            if ($WhereField -isnot [array]) { $WhereField = @($WhereField) }
+            if ($WhereValue -isnot [array]) { $WhereValue = @($WhereValue) }
             # PSObject轉Array語句
             # $ConvertToArray=@()
-            # for ($i = 0; $i -lt $SelectItem.Count; $i++) {
-            #     $ConvertToArray += "`$Item.(`$SelectItem[$i])"
+            # for ($i = 0; $i -lt $WhereField.Count; $i++) {
+            #     $ConvertToArray += "`$Item.(`$WhereField[$i])"
             # } $ConvertToArray = "@($($ConvertToArray -join ', '))"
             
             # 將輸入的陣列轉成同樣的 CsvObject
-            $Item2 = $Csv[0]|Select-Object $SelectItem
-            for ($i = 0; $i -lt $SelectItem.Count; $i++) {
-                $FidleName = $SelectItem[$i]
-                $InputValue = $ItemValue[$i]
+            $Item2 = $Csv[0]|Select-Object $WhereField
+            for ($i = 0; $i -lt $WhereField.Count; $i++) {
+                $FidleName = $WhereField[$i]
+                $InputValue = $WhereValue[$i]
                 $Item2.$FidleName = $InputValue
             } $InItemStr   = ($Item2|ConvertTo-Csv -NoTypeInformation)[1]
             
             # 找出相同的項目加入新陣列中
             for ($i = 0; $i -lt $Csv.Count; $i++) {
-                $Item = $Csv[$i]|Select-Object $SelectItem # 取出特定字段
+                $Item = $Csv[$i]|Select-Object $WhereField # 取出特定字段
                 $CsvItemStr  = ($Item|ConvertTo-Csv -NoTypeInformation)[1]
                 if($InItemStr -eq $CsvItemStr){ $Array += $Csv[$i] }
                 # $ItemArr = $ConvertToArray|Invoke-Expression
                 # if ($ItemArr) {
-                #     $IsEqual = !(Compare-Object $ItemArr $ItemValue -SyncWindow 0)
+                #     $IsEqual = !(Compare-Object $ItemArr $WhereValue -SyncWindow 0)
                 #     if($IsEqual){ $Array += $Csv[$i] }
                 # }
             }
+        } else {
+            Write-Host "Error:: -WhereValue is Null" -ForegroundColor:Yellow; return
         } $Csv=$Array; $Array=$null
     }
     
@@ -225,11 +227,11 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
 # autoFixCsv 'sort.csv' -Unique "A" -Select "A" -Count -UTF8BOM
 
-# autoFixCsv 'sort.csv' -SelectItem A,B -ItemValue B,1 -UTF8
-# autoFixCsv 'sample2.csv' -SelectItem 会社略称 -ItemValue ＨＩＳＹＳ－ＥＳ -UTF8
-# autoFixCsv 'sample2.csv' -SelectItem 会社略称 -ItemValue "" -UTF8
-# autoFixCsv 'sample2.csv' -SelectItem 会社略称,役員並び順 -ItemValue ＨＩＳＹＳ,99 -UTF8
-# autoFixCsv 'sort.csv' -SelectItem ID,B -ItemValue 10,1 -UTF8
+# autoFixCsv 'sort.csv' -WhereField A,B -WhereValue B,1 -UTF8
+# autoFixCsv 'sample2.csv' -WhereField 会社略称 -WhereValue ＨＩＳＹＳ－ＥＳ -UTF8
+# autoFixCsv 'sample2.csv' -WhereField 会社略称 -WhereValue "" -UTF8
+# autoFixCsv 'sample2.csv' -WhereField 会社略称,役員並び順 -WhereValue ＨＩＳＹＳ,99 -UTF8
+# autoFixCsv 'sort.csv' -WhereField ID,B -WhereValue 10,1 -UTF8
 # autoFixCsv 'sort.csv' -UTF8
 # autoFixCsv 'sample1.csv' -UTF8BOM
 
