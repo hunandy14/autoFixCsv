@@ -23,9 +23,9 @@ function autoFixCsv {
         [object] $Select,
         
         [Parameter(ParameterSetName = "")]
-        [object] $SelectItem,
+        [array] $SelectItem,
         [Parameter(ParameterSetName = "")]
-        [object] $ItemValue,
+        [array] $ItemValue,
         
         [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
@@ -209,7 +209,8 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
 # autoFixCsv 'sort.csv' -Unique "A" -Select "A" -Count -UTF8BOM
 
-# autoFixCsv 'sort.csv' -SelectItem ID,A,B -ItemValue B,1 -UTF8
+# autoFixCsv 'sort.csv' -SelectItem A,B -ItemValue B,1 -UTF8
+# autoFixCsv 'sample2.csv' -SelectItem "会社略称" -ItemValue "ＨＩＳＹＳ" -UTF8
 # autoFixCsv 'sort.csv' -SelectItem ID,B -ItemValue 10,1 -UTF8
 # autoFixCsv 'sort.csv' -UTF8
 # autoFixCsv 'sample1.csv' -UTF8BOM
