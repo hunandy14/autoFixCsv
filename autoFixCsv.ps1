@@ -23,6 +23,11 @@ function autoFixCsv {
         [object] $Select,
         
         [Parameter(ParameterSetName = "")]
+        [object] $SelectItem,
+        [Parameter(ParameterSetName = "")]
+        [object] $ItemValue,
+        
+        [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
         
         [switch] $UTF8,
@@ -137,6 +142,25 @@ function autoFixCsv {
         }
     }
     
+    # 取出特定數值的項目
+    if ($SelectItem) {
+        if ($ItemValue) {
+            # PSObject轉Array語句
+            $ConvertToArray=@()
+            for ($i = 0; $i -lt $SelectItem.Count; $i++) {
+                $ConvertToArray += "`$Item.(`$SelectItem[$i])"
+            } $ConvertToArray = "@($($ConvertToArray -join ', '))"
+            # 找出相同的項目
+            $Array = @()
+            for ($i = 0; $i -lt $Csv.Count; $i++) {
+                $Item = $Csv[$i]|Select-Object $SelectItem
+                $ItemArr = $ConvertToArray|Invoke-Expression
+                $IsEqual = !(Compare-Object $ItemArr $ItemValue -SyncWindow 0)
+                if($IsEqual){ $Array += $Csv[$i] }
+            }; $Csv=$Array; $Array=$null
+        }
+    }
+    
     # 自訂功能
     if ($ScriptBlock) { & $ScriptBlock }
     
@@ -149,6 +173,7 @@ function autoFixCsv {
     # 輸出Csv檔案
     } else {
         $Content = $Csv|ConvertTo-Csv -NoTypeInformation
+        if(!$Content){ $Content = "" }
         $Destination = [System.IO.Path]::GetFullPath($Destination)
         if ($Destination -and !(Test-Path $Destination)) { New-Item $Destination -Force|Out-Null }
         [IO.File]::WriteAllLines($Destination, $Content, $Enc)
@@ -157,6 +182,7 @@ function autoFixCsv {
             $StWh.Stop()
             $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
             Write-Host "Finish [" -NoNewline; Write-Host $Time -NoNewline; Write-Host "]"
+            if(!$Content){ Write-Host "Warring:: Csv out content is empty" -ForegroundColor:Yellow }
         }
     }
 } # autoFixCsv 'sample1.csv'
@@ -182,6 +208,11 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
 # autoFixCsv 'sort.csv' -Unique "A" -Select "A" -Count -UTF8BOM
+
+# autoFixCsv 'sort.csv' -SelectItem ID,A,B -ItemValue B,1 -UTF8
+# autoFixCsv 'sort.csv' -SelectItem ID,B -ItemValue 10,1 -UTF8
+# autoFixCsv 'sort.csv' -UTF8
+# autoFixCsv 'sample1.csv' -UTF8BOM
 
 # 測試自訂功能
 # autoFixCsv 'sort.csv' -Unique "A" -Select "A" -UTF8BOM -ScriptBlock{
