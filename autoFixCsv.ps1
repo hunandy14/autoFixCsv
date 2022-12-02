@@ -338,7 +338,7 @@ function CheckCsv {
     $Path = [IO.Path]::GetFullPath([IO.Path]::Combine((Get-Location -PSProvider FileSystem).ProviderPath, $Path))
     
     # 檔案是否存在
-    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist"; return 1 }
+    if (!(Test-Path -PathType:Leaf $Path)) { Write-Output "Input file `"$Path`" does not exist"; return}
     
     # 讀取檔案
     try { # 阻止編碼錯誤時繼續執行代碼
@@ -350,19 +350,19 @@ function CheckCsv {
     } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
     # 檔案是否為空檔
-    If ((Get-Item $Path).length -eq 0kb) { Write-Error "Input file `"$Path`" is zero byte"; return 2 }
+    If ((Get-Item $Path).length -eq 0kb) { Write-Output "Input file `"$Path`" is zero byte"; return}
     
     # 校驗字段
     if ($Title) {
-        if ($Content[0] -ne $Title) { Write-Error "Title check Fail"; return 3 }
+        if ($Content[0] -ne $Title) { Write-Output "Title check Fail"; return}
     }
     
     # 校驗CSV
-    if (!$Csv) { Write-Error "Content check Fail"; return 4 }
+    if (!$Csv) { Write-Output "Content check Fail"; return}
     
     # 校驗資料數目是否有少
     if ($ItemCount) {
-        $idx=0
+        $idx=0; $ErrorCount=0
         ($Content)|ForEach-Object{
             $line = $_
             $flag=$true; $c=0
@@ -380,21 +380,22 @@ function CheckCsv {
                     }
                 }
             }
-            if (($ItemCount-1) -ne $c) { Write-Host "In line [$idx] item quantity has wrong" }
+            if (($ItemCount-1) -ne $c) { Write-Output "In line [$idx] item quantity has wrong"; $ErrorCount++ }
             $idx++
         }
+        if ($ErrorCount -ne 0) { return }
     }
     
     # 驗證型態
     if ($TypeIsInt) {
-        $idx=0
+        $ErrorCount=0
         for ($j = 0; $j -lt $Csv.Count; $j++) {
             $Item = $Csv[$j]|Select-Object $TypeIsInt
             $Item = ($Item.PSObject.Properties.Value)
             for ($i = 0; $i -lt $Item.Count; $i++) {
                 $Value = $Item[$i]
                 if ($Value -notmatch "^[0-9]*$") {
-                    "In line [$j], item [$($TypeIsInt[$i])] has the wrong type"
+                    Write-Output "In line [$j], item [$($TypeIsInt[$i])] has the wrong type"; $ErrorCount++
                 }
             }
         }
