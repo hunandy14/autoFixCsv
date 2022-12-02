@@ -29,9 +29,9 @@ function autoFixCsv {
         
         [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
-        
         [switch] $UTF8,
         [switch] $UTF8BOM,
+        
         [switch] $TrimValue,
         [switch] $AddIndex,
         [switch] $OutNull,
@@ -300,3 +300,115 @@ function ForEachCsvItem {
 # $csv|ForEachCsvItem -ConvertObject ([ScriptBlock]::Create({$Title=$Title}.ToString() + $ConvertObject)) {
 #     Write-Host "$($_.ID) | $($_.Title) | $($_.field_1) | $($_.field_2)"
 # }
+
+
+
+
+# 檢測CSV
+function CheckCsv {
+    param (
+        [Parameter(Position = 0, ParameterSetName = "", Mandatory)]
+        [string] $Path,
+        [Parameter(ParameterSetName = "")]
+        [string] $Title,
+        [Parameter(ParameterSetName = "")]
+        [object] $TypeIsInt,
+        [string] $ItemCount,
+        
+        [Parameter(ParameterSetName = "")]
+        [Text.Encoding] $Encoding,
+        [switch] $UTF8,
+        [switch] $UTF8BOM
+    )
+    # 處理編碼
+    if ($Encoding) { # 自訂編碼
+        $Enc = $Encoding
+    } else { # 預選項編碼
+        if ($UTF8) {
+            $Enc = New-Object System.Text.UTF8Encoding $False
+        } elseif ($UTF8BOM) {
+            $Enc = New-Object System.Text.UTF8Encoding $True
+        } else { # 系統語言
+            if (!$__SysEnc__) { $Script:__SysEnc__ = [Text.Encoding]::GetEncoding((powershell -nop "([Text.Encoding]::Default).WebName")) }
+            $Enc = $__SysEnc__
+        }
+    }
+    
+    # 檢查
+    $Path = [IO.Path]::GetFullPath([IO.Path]::Combine((Get-Location -PSProvider FileSystem).ProviderPath, $Path))
+    
+    # 檔案是否存在
+    if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist"; return 1 }
+    
+    # 讀取檔案
+    try { # 阻止編碼錯誤時繼續執行代碼
+        $Content = [IO.File]::ReadAllLines($Path, $Enc)
+    } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
+    # 轉換至物件
+    try {
+        $Csv = $Content|ConvertFrom-Csv
+    } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
+    
+    # 檔案是否為空檔
+    If ((Get-Item $Path).length -eq 0kb) { Write-Error "Input file `"$Path`" is zero byte"; return 2 }
+    
+    # 校驗字段
+    if ($Title) {
+        if ($Content[0] -ne $Title) { Write-Error "Title check Fail"; return 3 }
+    }
+    
+    # 校驗CSV
+    if (!$Csv) { Write-Error "Content check Fail"; return 4 }
+    
+    # 校驗資料數目是否有少
+    if ($ItemCount) {
+        $idx=0
+        ($Content)|ForEach-Object{
+            $line = $_
+            $flag=$true; $c=0
+            for ($i = 0; $i -lt $line.Length; $i++) {
+                $char=$line[$i]
+                if ($flag) {
+                    if ($char -eq "`"") {
+                        $flag=$false
+                    } elseif ($char -eq ',') {
+                        $c++
+                    }
+                } else {
+                    if ($char -eq "`"") {
+                        $flag=$true
+                    }
+                }
+            }
+            if (($ItemCount-1) -ne $c) { Write-Host "In line [$idx] item quantity has wrong" }
+            $idx++
+        }
+    }
+    
+    # 驗證型態
+    if ($TypeIsInt) {
+        $idx=0
+        for ($j = 0; $j -lt $Csv.Count; $j++) {
+            $Item = $Csv[$j]|Select-Object $TypeIsInt
+            $Item = ($Item.PSObject.Properties.Value)
+            for ($i = 0; $i -lt $Item.Count; $i++) {
+                $Value = $Item[$i]
+                if ($Value -notmatch "^[0-9]*$") {
+                    "In line [$j], item [$($TypeIsInt[$i])] has the wrong type"
+                }
+            }
+        }
+    }
+}
+# 路徑不存在
+# CheckCsv "ck\0.csv"
+# 空檔
+# CheckCsv "ck\1.0byte.csv"
+# 字段
+# CheckCsv "ck\2.onlyitem.csv" -Title "A,B,C,D"
+# 項目至少一項
+# CheckCsv "ck\3.onlytitle.csv" -Title "A,B,C,D"
+# 檢查資料中有沒有少項目的(逗號缺少)
+# CheckCsv "ck\4.coma.csv" -Title "A,B,C,D" -ItemCount 4
+# 檢查資料型態
+# CheckCsv "ck\5.type.csv" -Title "A,B,C,D" -ItemCount 4 -TypeIsInt B,C
