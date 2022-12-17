@@ -8,30 +8,38 @@ function autoFixCsv {
         [Parameter(Position = 0, ParameterSetName = "", Mandatory)]
         [string] $Path,
         [Parameter(Position = 1, ParameterSetName = "A")]
-        [string] $Destination,
+        [string] $OutFile,
+        # 輸出物件而不是檔案
         [Parameter(Position = 1, ParameterSetName = "B")]
         [switch] $OutObject,
+        # 複寫到同一個檔案
         [Parameter(Position = 1, ParameterSetName = "C")]
         [switch] $Overwrite,
-        
+
+        # 排序
         [Parameter(ParameterSetName = "")]
         [object] $Sort,
+        [switch] $SortAllFields, # 排序所有項目
+        [switch] $Descending, # 排序的結果反序
+        # 取出唯一
         [Parameter(ParameterSetName = "")]
         [object] $Unique,
-        [switch] $Count, # 統計有多少重複的 (Unique啟用時才能統計)
+        [switch] $Count, # 追加統計有多少重複的字段
+        # 選出特定值
         [Parameter(ParameterSetName = "")]
         [object] $Select,
-        
+        [object] $UnSelect,
+        # 選出特定Field中特定的值
         [Parameter(ParameterSetName = "")]
         [object] $WhereField,
         [Parameter(ParameterSetName = "")]
         [object] $WhereValue,
-        
+        # 處理書編碼
         [Parameter(ParameterSetName = "")]
         [Text.Encoding] $Encoding,
         [switch] $UTF8,
         [switch] $UTF8BOM,
-        
+        # 其他選項
         [switch] $TrimValue,
         [switch] $AddIndex,
         [switch] $OutNull,
@@ -43,13 +51,13 @@ function autoFixCsv {
     [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
     $Path = [System.IO.Path]::GetFullPath($Path)
     if (!(Test-Path -PathType:Leaf $Path)) { Write-Error "Input file `"$Path`" does not exist" -ErrorAction:Stop }
-    if (!$Destination) {
+    if (!$OutFile) {
         $File = Get-Item $Path
-        $Destination = ($File.BaseName + "_fix" + $File.Extension)
+        $OutFile = ($File.BaseName + "_fix" + $File.Extension)
     }
     if ($OutObject) { $OutNull = $true } # 輸出物件的時候不要輸出信息
-    if ($Destination -eq $Path) { Write-Host "Warring:: The source path is the same as the destination path. If you want to overwrite, Please use `"-Overwrite`"." -ForegroundColor:Yellow; return }
-    if ($Overwrite) { $Destination = $Path } # 覆蓋原檔
+    if ($OutFile -eq $Path) { Write-Warning "The source path is the same as the destination path. If you want to overwrite, Please use `"-Overwrite`"." -ForegroundColor:Yellow; return }
+    if ($Overwrite) { $OutFile = $Path } # 覆蓋原檔
     
     # 處理編碼
     if ($Encoding) { # 自訂編碼
@@ -77,7 +85,7 @@ function autoFixCsv {
         Write-Host $EncName -NoNewline -ForegroundColor:Yellow
         Write-Host "]:: $Path"
         Write-Host "  └──[$EncName]:: " -NoNewline
-        Write-Host $Destination -ForegroundColor:White
+        Write-Host $OutFile -ForegroundColor:White
         Write-Host "Convert start... " -NoNewline
     }
     
@@ -87,12 +95,19 @@ function autoFixCsv {
     # 轉換至物件
     try {
         $Csv = $Content|ConvertFrom-Csv
+        $Fields = $Csv[0].psobject.properties.name
     } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
     
     
     
     # 排序
-    if ($Sort) { $Csv = $Csv|Sort-Object -Property $Sort }
+    if ($Sort -eq "") { Write-Error "Parameter `"-Sort`" cannot be blank" -ErrorAction:Stop }
+    if ($Sort -and $SortAllFields) { Write-Warning "When the `"-Sort`" and `"-SortAllFields`" parameters are specified at the same time, only the `"-Sort`" parameter is valid" }
+    if ($Sort) {
+        $Csv = $Csv|Sort-Object -Property $Sort -Descending:$Descending
+    } elseif ($SortAllFields) {
+        $Csv = $Csv|Sort-Object -Property $Fields -Descending:$Descending
+    }
     
     # 消除相同
     if ($Unique -or ($Unique -eq "")) {
@@ -115,15 +130,21 @@ function autoFixCsv {
                 if ($Count) { $Array[$hashTable.$str].Count++ }
             }
         }; $Csv=$Array; $Array=$null
+    } elseif ($Count) { # "-Count"參數只能在"-Unique"參數有效時使用
+        Write-Warning "The `"-Count`" parameter can only be used when the `"-Unique`" parameter is valid"
     }
     
     # 取出特定項目
-    if ($Select) { 
-        if ($Count) {
-            $Csv = $Csv|Select-Object -Property Count,$Select
-        } else {
-            $Csv = $Csv|Select-Object -Property $Select
-        }
+    if ($Select -and $UnSelect) { Write-Warning "When the `"-Select`" and `"-UnSelect`" parameters are specified at the same time, only the `"-Select`" parameter is valid" }
+    if ($Select) {
+        if ($Select -isnot [array]) { $Select = @($Select) }
+        if ($Count) { $Select = @("Count")+$Select } # 有追加項目的時候不要把追加砍掉了
+        $Csv = $Csv|Select-Object -Property $Select
+    } elseif ($UnSelect) {
+        if ($UnSelect -isnot [array]) { $UnSelect = @($UnSelect) }
+        $Select = $Fields|Where-Object{$_ -notin $UnSelect}
+        if ($Count) { $Select = @("Count")+$Select } # 有追加項目的時候不要把追加砍掉了
+        $Csv = $Csv|Select-Object -Property $Select
     }
     
     # 消除多餘空白
@@ -187,14 +208,13 @@ function autoFixCsv {
     # 輸出物件
     if ($OutObject) {
         return $Csv
-        
     # 輸出Csv檔案
     } else {
         $Content = $Csv|ConvertTo-Csv -NoTypeInformation
         if(!$Content){ $Content = "" }
-        $Destination = [System.IO.Path]::GetFullPath($Destination)
-        if ($Destination -and !(Test-Path $Destination)) { New-Item $Destination -Force|Out-Null }
-        [IO.File]::WriteAllLines($Destination, $Content, $Enc)
+        $OutFile = [System.IO.Path]::GetFullPath($OutFile)
+        if ($OutFile -and !(Test-Path $OutFile)) { New-Item $OutFile -Force|Out-Null }
+        [IO.File]::WriteAllLines($OutFile, $Content, $Enc)
         # 輸出提示訊息
         if (!$OutNull) {
             $StWh.Stop()
@@ -214,10 +234,13 @@ function autoFixCsv {
 # autoFixCsv 'sample1.csv' -Overwrite -UTF8
 # autoFixCsv 'sample1.csv' -Overwrite -UTF8BOM
 # autoFixCsv 'sort.csv' -Unique A -UTF8
+# autoFixCsv 'sort.csv' -SortAllFields -UTF8
 # autoFixCsv 'sort.csv' -Sort ID
+# autoFixCsv 'sort.csv' -Sort ID -UTF8
 # autoFixCsv 'sort.csv' -Sort ID,A,B
 # autoFixCsv 'sort.csv' -Sort ID,A,B -Unique A
-# autoFixCsv 'sort.csv' -Sort A,B -Unique ID
+# autoFixCsv 'sort.csv' -Sort A,B -Unique ID -UTF8
+# autoFixCsv 'sort.csv' -Sort A,B -UTF8 -Descending
 # autoFixCsv 'sort.csv' -Unique C,D
 # autoFixCsv 'sort.csv' -Select A,B
 # autoFixCsv 'sort.csv' -Unique E -UTF8
@@ -225,8 +248,8 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique "" -UTF8
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM
 # autoFixCsv 'sort.csv' -Unique "" -Count -UTF8BOM -AddIndex
-# autoFixCsv 'sort.csv' -Unique "A" -Select "A" -Count -UTF8BOM
-
+# autoFixCsv 'sort.csv' -Unique A -Select "A" -Count -UTF8
+# autoFixCsv 'sort.csv' -UnSelect A,B -UTF8 -Count
 # autoFixCsv 'sort.csv' -WhereField A,B -WhereValue B,1 -UTF8
 # autoFixCsv 'sample2.csv' -WhereField 会社略称 -WhereValue ＨＩＳＹＳ－ＥＳ -UTF8
 # autoFixCsv 'sample2.csv' -WhereField 会社略称 -WhereValue "" -UTF8
@@ -246,6 +269,7 @@ function autoFixCsv {
 # autoFixCsv 'XXXXXXX.csv'
 # autoFixCsv 'sample2.csv'
 # autoFixCsv 'sort.csv' -Unique G
+# autoFixCsv 'sort.csv' -Sort ""
 # try { autoFixCsv 'XXXXXXX.csv' } catch { Write-Output "Catch:: " ($Error[$Error.Count-1]) }
 
 

@@ -39,16 +39,21 @@ autoFixCsv 'sample1.csv' 'sample1_fix.csv'
 
 # 排序
 autoFixCsv 'sort.csv' -Sort ID,A,B
-# 去除重複
+autoFixCsv 'sort.csv' -Sort ID,A,B -Descending
+autoFixCsv 'sort.csv' -SortAllFields
+
+# 去除重複 (""空白表示全項目)
 autoFixCsv 'sort.csv' -Unique ""
 autoFixCsv 'sort.csv' -Unique C,D
 # 去除重複並統計重複數量有多少
 autoFixCsv 'sort.csv' -Unique "" -Count
+
 # 選出特定項目
 autoFixCsv 'sort.csv' -Select A,B
+autoFixCsv 'sort.csv' -UnSelect A,B
 
 # 追加流水番號
-autoFixCsv 'sort.csv' -Unique "" -Index
+autoFixCsv 'sort.csv' -Index
 
 # 自訂功能 -> 新增流水番號 (物件變數是$Csv)
 autoFixCsv 'sort.csv' -ScriptBlock{
