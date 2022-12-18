@@ -221,10 +221,13 @@ function autoFixCsv {
             $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
             Write-Host "Finish [" -NoNewline; Write-Host $Time -NoNewline; Write-Host "]"
             if(!$Content){ Write-Host "Warring:: Csv out content is empty" -ForegroundColor:Yellow }
+        } else {
+            return $OutFile
         }
     }
 } # autoFixCsv 'sample1.csv'
 # autoFixCsv 'sample1.csv'
+# autoFixCsv 'sample1.csv' -OutNull
 # autoFixCsv 'sample1.csv' 'sample1_fix.csv'
 # autoFixCsv 'sample1.csv' 'Z:\sample1_fix.csv'
 # autoFixCsv 'sample1.csv' -TrimValue -UTF8
