@@ -53,7 +53,7 @@ autoFixCsv 'sort.csv' -Select A,B
 autoFixCsv 'sort.csv' -UnSelect A,B
 
 # 追加流水番號
-autoFixCsv 'sort.csv' -Index
+autoFixCsv 'sort.csv' -AddIndex
 
 # 自訂功能 -> 新增流水番號 (物件變數是$Csv)
 autoFixCsv 'sort.csv' -ScriptBlock{
