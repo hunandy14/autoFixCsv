@@ -96,7 +96,7 @@ function autoFixCsv {
     try {
         $Csv = $Content|ConvertFrom-Csv
         $Fields = $Csv[0].psobject.properties.name
-    } catch { Write-Error $PSItem -ErrorAction -ErrorAction:Stop }
+    } catch { Write-Error $PSItem -ErrorAction:Stop }
     
     
     
