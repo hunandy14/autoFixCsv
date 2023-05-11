@@ -445,8 +445,8 @@ function CheckCsv {
 # 選取CSV資料範圍
 function SelPsObjRange {
     param(
-        [Parameter(Position = 0, Mandatory, ValueFromPipeline)]
-        [PSObject]$CsvData,
+        [Parameter(Position = 0, Mandatory)]
+        [PSObject]$Object,
         [Parameter(Position = 1, Mandatory)]
         [int[]]$Range
     )
@@ -458,8 +458,8 @@ function SelPsObjRange {
             $start = 0
             $end = $Range[0] - 1
         } else {
-            $start = $CsvData.Count + $Range[0]
-            $end = $CsvData.Count - 1
+            $start = $Object.Count + $Range[0]
+            $end = $Object.Count - 1
         }
     } elseif ($Range.Count -eq 2) {
         # 如果範圍起始索引大於等於終止索引，返回空陣列
@@ -471,11 +471,11 @@ function SelPsObjRange {
     if ($start -lt 0) {
         $start = 0
     }
-    if ($end -gt $CsvData.Count - 1) {
-        $end = $CsvData.Count - 1
+    if ($end -gt $Object.Count - 1) {
+        $end = $Object.Count - 1
     }
     # 返回根據範圍選擇 CSV 數據
-    return $CsvData[$start..$end]
+    return $Object[$start..$end]
 }
 
 # $csv = (Import-Csv a.csv)
