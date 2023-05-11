@@ -446,42 +446,46 @@ function CheckCsv {
 function SelectRowRange {
     param(
         [Parameter(Position = 0, Mandatory)]
-        [PSObject] $CsvData,
-        [Parameter(Mandatory)]
+        [PSObject] $Object,
         [int[]] $Range
     )
     # 將單個對象包裝成數組
-    if ($CsvData -isnot [array]) { $CsvData = ,$CsvData }
+    if ($Object -isnot [array]) { $Object = ,$Object }
     # 判斷範圍數組的長度，如果只有一個數字，將範圍開始設為0或從尾部開始
     if ($Range.Count -eq 1) {
         if ($Range[0] -eq 0) {
-            return @()
+            return $null
         } elseif ($Range[0] -gt 0) {
             $start = 0
             $end = $Range[0] - 1
         } else {
-            $start = $CsvData.Count + $Range[0]
-            $end = $CsvData.Count - 1
+            $start = $Object.Count + $Range[0]
+            $end = $Object.Count - 1
         }
     } elseif ($Range.Count -eq 2) {
         # 如果範圍起始索引大於等於終止索引，返回空陣列
         if ($Range[0] -ge $Range[1]) { return @() }
         $start = $Range[0]
         $end = $Range[1] - 1
-    } else { Write-Error "範圍數組的長度必須為1或2" -EA:Stop }
+    } elseif (!$Range) {
+        # $Range 空欄時返回全部
+        return ,$Object
+    } else {
+        return $null
+    }
 
     # 確認範圍是否超出 CSV 物件的行數，如果超出，修正至最大值
     if ($start -lt 0) {
         $start = 0
-    }; if ($end -gt $CsvData.Count - 1) {
-        $end = $CsvData.Count - 1
+    }; if ($end -gt $Object.Count - 1) {
+        $end = $Object.Count - 1
     }
 
     # 返回根據範圍選擇 CSV 數據
-    return ,$CsvData[$start..$end]
+    return ,$Object[$start..$end]
 }
-
 # $csv = (Import-Csv a.csv)
+# SelectRowRange $csv # 回傳全
 # SelectRowRange $csv -Range 0,0 # 空
 # SelectRowRange $csv -Range 0,1 # 回傳一個
 # SelectRowRange $csv -Range 1 # 回傳一個
