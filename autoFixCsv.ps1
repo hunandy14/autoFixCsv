@@ -440,3 +440,53 @@ function CheckCsv {
 # CheckCsv "ck\4.coma.csv" -Title "A,B,C,D" -ItemCount 4
 # 檢查資料型態
 # CheckCsv "ck\5.type.csv" -Title "A,B,C,D" -ItemCount 4 -TypeIsInt B,C
+
+
+# 選取CSV資料範圍
+function SelPsObjRange {
+    param(
+        [Parameter(Position = 0, Mandatory, ValueFromPipeline)]
+        [PSObject]$CsvData,
+        [Parameter(Position = 1, Mandatory)]
+        [int[]]$Range
+    )
+    # 判斷範圍數組的長度，如果只有一個數字，將範圍開始設為0或從尾部開始
+    if ($Range.Count -eq 1) {
+        if ($Range[0] -eq 0) {
+            return @()
+        } elseif ($Range[0] -gt 0) {
+            $start = 0
+            $end = $Range[0] - 1
+        } else {
+            $start = $CsvData.Count + $Range[0]
+            $end = $CsvData.Count - 1
+        }
+    } elseif ($Range.Count -eq 2) {
+        # 如果範圍起始索引大於等於終止索引，返回空陣列
+        if ($Range[0] -ge $Range[1]) { return @() }
+        $start = $Range[0]
+        $end = $Range[1] - 1
+    } else { Write-Error "參數 -Range 陣列至少要施入1或2個整數" -EA:Stop }
+    # 確認範圍是否超出 CSV 物件的行數，如果超出，修正至最大值
+    if ($start -lt 0) {
+        $start = 0
+    }
+    if ($end -gt $CsvData.Count - 1) {
+        $end = $CsvData.Count - 1
+    }
+    # 返回根據範圍選擇 CSV 數據
+    return $CsvData[$start..$end]
+}
+
+# $csv = (Import-Csv a.csv)
+# SelPsObjRange $csv -Range 0,0 # 空
+# SelPsObjRange $csv -Range 0,1 # 回傳一個
+# SelPsObjRange $csv -Range 1 # 回傳一個
+# SelPsObjRange $csv -Range 0 # 空
+
+# SelPsObjRange $csv -Range 0,100 # 超範圍測試
+# SelPsObjRange $csv -Range -3 # 回傳結尾3個
+# SelPsObjRange $csv -Range 0,0.9 # 錯誤測試
+# SelPsObjRange $csv -Range 0,1,2 # 錯誤測試
+# SelPsObjRange $csv -Range @("") # 錯誤測試
+# SelPsObjRange $csv -Range @("", "") # 錯誤測試
