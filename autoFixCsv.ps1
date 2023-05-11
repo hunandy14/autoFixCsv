@@ -443,13 +443,15 @@ function CheckCsv {
 
 
 # 選取CSV資料範圍
-function SelPsObjRange {
+function SelectRowRange {
     param(
         [Parameter(Position = 0, Mandatory)]
-        [PSObject]$Object,
-        [Parameter(Position = 1, Mandatory)]
-        [int[]]$Range
+        [PSObject] $CsvData,
+        [Parameter(Mandatory)]
+        [int[]] $Range
     )
+    # 將單個對象包裝成數組
+    if ($CsvData -isnot [array]) { $CsvData = ,$CsvData }
     # 判斷範圍數組的長度，如果只有一個數字，將範圍開始設為0或從尾部開始
     if ($Range.Count -eq 1) {
         if ($Range[0] -eq 0) {
@@ -458,35 +460,38 @@ function SelPsObjRange {
             $start = 0
             $end = $Range[0] - 1
         } else {
-            $start = $Object.Count + $Range[0]
-            $end = $Object.Count - 1
+            $start = $CsvData.Count + $Range[0]
+            $end = $CsvData.Count - 1
         }
     } elseif ($Range.Count -eq 2) {
         # 如果範圍起始索引大於等於終止索引，返回空陣列
         if ($Range[0] -ge $Range[1]) { return @() }
         $start = $Range[0]
         $end = $Range[1] - 1
-    } else { Write-Error "參數 -Range 陣列至少要施入1或2個整數" -EA:Stop }
+    } else { Write-Error "範圍數組的長度必須為1或2" -EA:Stop }
+
     # 確認範圍是否超出 CSV 物件的行數，如果超出，修正至最大值
     if ($start -lt 0) {
         $start = 0
+    }; if ($end -gt $CsvData.Count - 1) {
+        $end = $CsvData.Count - 1
     }
-    if ($end -gt $Object.Count - 1) {
-        $end = $Object.Count - 1
-    }
+
     # 返回根據範圍選擇 CSV 數據
-    return $Object[$start..$end]
+    return ,$CsvData[$start..$end]
 }
 
 # $csv = (Import-Csv a.csv)
-# SelPsObjRange $csv -Range 0,0 # 空
-# SelPsObjRange $csv -Range 0,1 # 回傳一個
-# SelPsObjRange $csv -Range 1 # 回傳一個
-# SelPsObjRange $csv -Range 0 # 空
-
-# SelPsObjRange $csv -Range 0,100 # 超範圍測試
-# SelPsObjRange $csv -Range -3 # 回傳結尾3個
-# SelPsObjRange $csv -Range 0,0.9 # 錯誤測試
-# SelPsObjRange $csv -Range 0,1,2 # 錯誤測試
-# SelPsObjRange $csv -Range @("") # 錯誤測試
-# SelPsObjRange $csv -Range @("", "") # 錯誤測試
+# SelectRowRange $csv -Range 0,0 # 空
+# SelectRowRange $csv -Range 0,1 # 回傳一個
+# SelectRowRange $csv -Range 1 # 回傳一個
+# SelectRowRange $csv -Range 0 # 空
+# SelectRowRange $csv[0] -Range 10 # 空
+# SelectRowRange $csv[0] -Range 0 # 空
+# SelectRowRange $csv[0] -Range 0, 1 # 回傳一個
+# SelectRowRange $csv -Range 0,100 # 超範圍測試
+# SelectRowRange $csv -Range -3 # 回傳結尾3個
+# SelectRowRange $csv -Range 0,0.9 # 錯誤測試
+# SelectRowRange $csv -Range 0,1,2 # 錯誤測試
+# SelectRowRange $csv -Range @("") # 錯誤測試
+# SelectRowRange $csv -Range @("", "") # 錯誤測試
