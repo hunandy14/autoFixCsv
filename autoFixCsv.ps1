@@ -520,24 +520,22 @@ function Compare-Csv{
         Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/cvEncode/master/cvEncoding.ps1'|Invoke-Expression
         # 載入比較函式
         Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/autoCompare/master/DiffSource.ps1'|Invoke-Expression
-    }
-    
-    process {
         # 處理編碼
         $Enc1 = if ($EncodingLeftPath) { $EncodingLeftPath } elseif($Encoding) { $Encoding } else { $null }
         $Enc2 = if ($EncodingRightPath) { $EncodingRightPath } elseif($Encoding) { $Encoding } else { $null }
+    }
+    
+    process {
         # 讀取檔案
-        $left = ReadContent $LeftPath $Enc1
-        $right = ReadContent $RightPath $Enc2
-        # 選中特定字段
         if ($Fields) {
-            $left  = $left  |ConvertFrom-Csv
-            $right = $right |ConvertFrom-Csv
-            # $left |Format-Table
-            # $right |Format-Table
+            $left  = ReadContent $LeftPath $Enc1  |ConvertFrom-Csv
+            $right = ReadContent $RightPath $Enc2 |ConvertFrom-Csv
+            $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
+        } else {
+            $left = ReadContent $LeftPath $Enc1
+            $right = ReadContent $RightPath $Enc2
+            $comparisonResult = Compare-Object $left $right -SyncWindow:$SyncWindow
         }
-        # 比較陣列物件
-        $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
     }
     
     end {
