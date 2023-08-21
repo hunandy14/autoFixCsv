@@ -170,31 +170,21 @@ function autoFixCsv {
             # 確保物件是陣列格式
             if ($WhereField -isnot [array]) { $WhereField = @($WhereField) }
             if ($WhereValue -isnot [array]) { $WhereValue = @($WhereValue) }
-            # PSObject轉Array語句
-            # $ConvertToArray=@()
-            # for ($i = 0; $i -lt $WhereField.Count; $i++) {
-            #     $ConvertToArray += "`$Item.(`$WhereField[$i])"
-            # } $ConvertToArray = "@($($ConvertToArray -join ', '))"
-            
-            # 將輸入的陣列轉成同樣的 CsvObject
-            $item2 = $Csv[0]|Select-Object $WhereField
-            for ($i = 0; $i -lt $WhereField.Count; $i++) {
-                $FidleName = $WhereField[$i]
-                $InputValue = $WhereValue[$i]
-                $item2.$FidleName = $InputValue
-            } $InItemStr = ($item2|ConvertTo-Csv -NoTypeInformation)[1]
-            
-            # 找出相同的項目加入新陣列中
-            for ($i = 0; $i -lt $Csv.Count; $i++) {
-                $item = $Csv[$i]|Select-Object $WhereField # 取出特定字段
-                $CsvItemStr  = ($item|ConvertTo-Csv -NoTypeInformation)[1]
-                if($InItemStr -eq $CsvItemStr){ $Array += $Csv[$i] }
-                # $ItemArr = $ConvertToArray|Invoke-Expression
-                # if ($ItemArr) {
-                #     $IsEqual = !(Compare-Object $ItemArr $WhereValue -SyncWindow 0)
-                #     if($IsEqual){ $Array += $Csv[$i] }
-                # }
-            }
+            foreach ($item in $Csv) {
+                $matchCount = 0
+                # 使用正則表達式各別匹配各個字段值
+                for ($i = 0; $i -lt $WhereField.Count; $i++) {
+                    $field = $WhereField[$i]
+                    $pattern = $WhereValue[$i]
+                    if ($pattern -eq '') {
+                        if ($item.$field -eq '') { $matchCount++ }
+                    } else {
+                        if ($item.$field -match $pattern) { $matchCount++ }
+                    }
+                }
+                # 如果所有條件都匹配成功
+                if ($matchCount -eq $WhereField.Count) { $Array += $item }
+            }; $Csv = $Array
         } else {
             Write-Host "Error:: -WhereValue is Null" -ForegroundColor:Yellow; return
         } $Csv=$Array; $Array=$null
@@ -256,7 +246,8 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -WhereField A,B -WhereValue B,1 -UTF8
 # autoFixCsv 'test\DummyData_JP.csv' -WhereField '国' -WhereValue '台湾' -UTF8 -OutObject
 # autoFixCsv 'test\DummyData_JP.csv' -WhereField '国' -WhereValue '' -UTF8 -OutObject
-# autoFixCsv 'test\DummyData_JP.csv' -WhereField '国','職業' -WhereValue '台湾','行政書士' -UTF8 -OutObject
+# autoFixCsv 'test\DummyData_JP.csv' -WhereField '国','職業','生年月日' -WhereValue '台湾','行政書士','01-13' -UTF8 -OutObject
+# autoFixCsv 'test\DummyData_JP.csv' -WhereField '国','職業' -WhereValue '台湾' -UTF8 -OutObject
 # autoFixCsv 'sort.csv' -WhereField ID,B -WhereValue 10,1 -UTF8
 # autoFixCsv 'sort.csv' -UTF8
 # autoFixCsv 'sample1.csv' -UTF8BOM
