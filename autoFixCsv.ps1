@@ -503,6 +503,8 @@ function Compare-Csv{
         [string] $LeftPath,
         [Parameter(Position = 1, ParameterSetName = "", Mandatory)]
         [string] $RightPath,
+        # 選中特定字段
+        [array] $Fields,
         # 相鄰物件距離
         [Parameter(ParameterSetName = "")]
         [Int32] $SyncWindow = [Int32]::MaxValue,
@@ -527,23 +529,33 @@ function Compare-Csv{
         # 讀取檔案
         $left = ReadContent $LeftPath $Enc1
         $right = ReadContent $RightPath $Enc2
+        # 選中特定字段
+        if ($Fields) {
+            $left  = $left  |ConvertFrom-Csv
+            $right = $right |ConvertFrom-Csv
+            # $left |Format-Table
+            # $right |Format-Table
+        }
         # 比較陣列物件
-        $comparisonResult = Compare-Object $left $right -SyncWindow:$SyncWindow
+        $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
     }
     
     end {
         # 計算差異
         $leftDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '<=' }).Count
         $rightDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '=>' }).Count
-        $similar = [Math]::Abs($csv1.Count - $leftDiff)
         $total = $leftDiff + $rightDiff
+        $similar = $left.Count - $leftDiff
         # 建立並輸出報告物件
         [PSCustomObject]@{
             LeftDiff  = $leftDiff
             RightDiff = $rightDiff
+            TotalDiff = $total
             Similar   = $similar
-            Total     = $total
             Detail    = $comparisonResult
-        } # | Add-Member MemberSet PSStandardMembers $PSStandardMembers -PassThru
+        }
     }
 } # Compare-Csv '.\test\left.csv' '.\test\right.csv'
+# Compare-Csv '.\test\left.csv' '.\test\right.csv' -Fields "名前","職業" -Encoding UTF8
+# (Compare-Csv '.\test\left.csv' '.\test\right.csv' -Fields "職業" -Encoding UTF8)
+# Compare-Csv '.\test\left.csv' '.\test\right.csv' -Encoding UTF8
