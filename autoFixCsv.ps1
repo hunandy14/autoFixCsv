@@ -499,3 +499,60 @@ function SelectRowRange {
 # SelectRowRange $csv -Range 0,1,2 # 錯誤測試
 # SelectRowRange $csv -Range @("") # 錯誤測試
 # SelectRowRange $csv -Range @("", "") # 錯誤測試
+
+
+
+
+
+# 比較CSV檔案
+function Compare-Csv{
+    param (
+        # 路徑
+        [Parameter(Position = 0, ParameterSetName = "", Mandatory)]
+        [string] $LeftPath,
+        [Parameter(Position = 1, ParameterSetName = "", Mandatory)]
+        [string] $RightPath,
+        # 相鄰物件距離
+        [Parameter(ParameterSetName = "")]
+        [Int32] $SyncWindow = [Int32]::MaxValue,
+        # 編碼
+        [Parameter(ParameterSetName = "")]
+        [string] $EncodingLeftPath,
+        [string] $EncodingRightPath,
+        [string] $Encoding
+    )
+    
+    begin {
+        # 載入讀檔函式
+        Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/cvEncode/master/cvEncoding.ps1'|Invoke-Expression
+        # 載入比較函式
+        Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/autoCompare/master/DiffSource.ps1'|Invoke-Expression
+    }
+    
+    process {
+        # 處理編碼
+        $Enc1 = if ($EncodingLeftPath) { $EncodingLeftPath } elseif($Encoding) { $Encoding } else { $null }
+        $Enc2 = if ($EncodingRightPath) { $EncodingRightPath } elseif($Encoding) { $Encoding } else { $null }
+        # 讀取檔案
+        $left = ReadContent $LeftPath $Enc1
+        $right = ReadContent $RightPath $Enc2
+        # 比較陣列物件
+        $comparisonResult = Compare-Object $left $right -SyncWindow:$SyncWindow
+    }
+    
+    end {
+        # 計算差異
+        $leftDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '<=' }).Count
+        $rightDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '=>' }).Count
+        $similar = [Math]::Abs($csv1.Count - $leftDiff)
+        $total = $leftDiff + $rightDiff
+        # 建立並輸出報告物件
+        [PSCustomObject]@{
+            LeftDiff  = $leftDiff
+            RightDiff = $rightDiff
+            Similar   = $similar
+            Total     = $total
+            Detail    = $comparisonResult
+        } # | Add-Member MemberSet PSStandardMembers $PSStandardMembers -PassThru
+    }
+} # Compare-Csv '.\test\left.csv' '.\test\right.csv'

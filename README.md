@@ -10,16 +10,16 @@
 
 <br>
 
-### 注意事項
+## 快速使用
 
-快速使用
 ```ps1
 irm bit.ly/autoFixCsv|iex; autoFixCsv sample1.csv 
 ```
 
 <br>
 
-詳細用法
+## 詳細用法
+
 ```ps1
 # 載入函式庫
 irm bit.ly/autoFixCsv|iex;
@@ -61,6 +61,20 @@ autoFixCsv 'sort.csv' -ScriptBlock{
         $Csv[$i] = $Csv[$i]|Select-Object @{Name='Index';Expression={($i+1)}},*
     }
 }
+
+```
+
+## 比較CSV檔案
+
+```ps1
+## 無序比較CSV檔案
+irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path
+
+## 有序比較CSV檔案
+irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -SyncWindow 0
+
+## 限定行數間隔距離比較CSV檔案
+irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -SyncWindow 10
 
 ```
 
