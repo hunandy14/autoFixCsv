@@ -167,7 +167,7 @@ function autoFixCsv {
     if ($WhereField) {
         $Array = @() # 寫在這裡是為了卡住如果ItemValue是NULL至少把輸出變成空白
         if ($null -ne $WhereValue ) {
-            # 輸入如果不是陣列則將他轉微陣列
+            # 確保物件是陣列格式
             if ($WhereField -isnot [array]) { $WhereField = @($WhereField) }
             if ($WhereValue -isnot [array]) { $WhereValue = @($WhereValue) }
             # PSObject轉Array語句
@@ -177,17 +177,17 @@ function autoFixCsv {
             # } $ConvertToArray = "@($($ConvertToArray -join ', '))"
             
             # 將輸入的陣列轉成同樣的 CsvObject
-            $Item2 = $Csv[0]|Select-Object $WhereField
+            $item2 = $Csv[0]|Select-Object $WhereField
             for ($i = 0; $i -lt $WhereField.Count; $i++) {
                 $FidleName = $WhereField[$i]
                 $InputValue = $WhereValue[$i]
-                $Item2.$FidleName = $InputValue
-            } $InItemStr   = ($Item2|ConvertTo-Csv -NoTypeInformation)[1]
+                $item2.$FidleName = $InputValue
+            } $InItemStr = ($item2|ConvertTo-Csv -NoTypeInformation)[1]
             
             # 找出相同的項目加入新陣列中
             for ($i = 0; $i -lt $Csv.Count; $i++) {
-                $Item = $Csv[$i]|Select-Object $WhereField # 取出特定字段
-                $CsvItemStr  = ($Item|ConvertTo-Csv -NoTypeInformation)[1]
+                $item = $Csv[$i]|Select-Object $WhereField # 取出特定字段
+                $CsvItemStr  = ($item|ConvertTo-Csv -NoTypeInformation)[1]
                 if($InItemStr -eq $CsvItemStr){ $Array += $Csv[$i] }
                 # $ItemArr = $ConvertToArray|Invoke-Expression
                 # if ($ItemArr) {
@@ -254,9 +254,9 @@ function autoFixCsv {
 # autoFixCsv 'sort.csv' -Unique A -Select "A" -Count -UTF8
 # autoFixCsv 'sort.csv' -UnSelect A,B -UTF8 -Count
 # autoFixCsv 'sort.csv' -WhereField A,B -WhereValue B,1 -UTF8
-# autoFixCsv 'sample2.csv' -WhereField 会社略称 -WhereValue ＨＩＳＹＳ－ＥＳ -UTF8
-# autoFixCsv 'sample2.csv' -WhereField 会社略称 -WhereValue "" -UTF8
-# autoFixCsv 'sample2.csv' -WhereField 会社略称,役員並び順 -WhereValue ＨＩＳＹＳ,99 -UTF8
+# autoFixCsv 'test\DummyData_JP.csv' -WhereField '国' -WhereValue '台湾' -UTF8 -OutObject
+# autoFixCsv 'test\DummyData_JP.csv' -WhereField '国' -WhereValue '' -UTF8 -OutObject
+# autoFixCsv 'test\DummyData_JP.csv' -WhereField '国','職業' -WhereValue '台湾','行政書士' -UTF8 -OutObject
 # autoFixCsv 'sort.csv' -WhereField ID,B -WhereValue 10,1 -UTF8
 # autoFixCsv 'sort.csv' -UTF8
 # autoFixCsv 'sample1.csv' -UTF8BOM
