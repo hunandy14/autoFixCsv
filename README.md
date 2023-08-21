@@ -76,7 +76,7 @@ irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -SyncWindow 0
 # 限定行數間隔距離比較CSV檔案
 irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -SyncWindow 10
 
-# 特定字段比較
+# 特定字段比較 (效率影響很多)
 irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -Fields "名前","職業"
 
 ```

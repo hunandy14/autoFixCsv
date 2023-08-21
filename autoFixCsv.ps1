@@ -519,10 +519,13 @@ function Compare-Csv{
         # 載入讀檔函式
         Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/cvEncode/master/cvEncoding.ps1'|Invoke-Expression
         # 載入比較函式
-        Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/autoCompare/master/DiffSource.ps1'|Invoke-Expression
+        # Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/autoCompare/master/DiffSource.ps1'|Invoke-Expression
         # 處理編碼
         $Enc1 = if ($EncodingLeftPath) { $EncodingLeftPath } elseif($Encoding) { $Encoding } else { $null }
         $Enc2 = if ($EncodingRightPath) { $EncodingRightPath } elseif($Encoding) { $Encoding } else { $null }
+        # 計時開始
+        $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
+        Write-Host "Compare start... " -NoNewline
     }
     
     process {
@@ -530,16 +533,20 @@ function Compare-Csv{
         if ($Fields) {
             $left  = ReadContent $LeftPath $Enc1  |ConvertFrom-Csv
             $right = ReadContent $RightPath $Enc2 |ConvertFrom-Csv
-            $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
         } else {
-            $left = ReadContent $LeftPath $Enc1
+            $left  = ReadContent $LeftPath $Enc1
             $right = ReadContent $RightPath $Enc2
-            $comparisonResult = Compare-Object $left $right -SyncWindow:$SyncWindow
         }
+        # 比較差異
+        $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
     }
     
     end {
-        # 計算差異
+        # 計時結束
+        $StWh.Stop()
+        $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
+        Write-Host "Finish. [$Time]"
+        # 計算差異報告
         $leftDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '<=' }).Count
         $rightDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '=>' }).Count
         $total = $leftDiff + $rightDiff
