@@ -67,14 +67,17 @@ autoFixCsv 'sort.csv' -ScriptBlock{
 ## 比較CSV檔案
 
 ```ps1
-## 無序比較CSV檔案
+# 無序比較CSV檔案
 irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path
 
-## 有序比較CSV檔案
+# 有序比較CSV檔案
 irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -SyncWindow 0
 
-## 限定行數間隔距離比較CSV檔案
+# 限定行數間隔距離比較CSV檔案
 irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -SyncWindow 10
+
+# 特定字段比較
+irm bit.ly/autoFixCsv|iex; Compare-Csv $Csv1Path $Csv2Path -Fields "名前","職業"
 
 ```
 
