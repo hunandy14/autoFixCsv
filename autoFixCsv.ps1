@@ -533,13 +533,12 @@ function Compare-Csv{
     
     process {
         # 讀取檔案
-        $left  = ReadContent $LeftPath $Enc1 
-        $right = ReadContent $RightPath $Enc2
-        
-        # 選中特定字段
         if ($Fields) {
-            $left  = $left  |ConvertFrom-Csv
-            $right = $right |ConvertFrom-Csv
+            $left  = ReadContent $LeftPath $Enc1  |ConvertFrom-Csv
+            $right = ReadContent $RightPath $Enc2 |ConvertFrom-Csv
+        } else {
+            $left  = ReadContent $LeftPath $Enc1 
+            $right = ReadContent $RightPath $Enc2
         }; $StWh.Stop()
         
         # 比較差異
