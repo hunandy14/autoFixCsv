@@ -520,45 +520,61 @@ function Compare-Csv{
         Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/cvEncode/master/cvEncoding.ps1'|Invoke-Expression
         # 載入比較函式
         # Invoke-RestMethod 'raw.githubusercontent.com/hunandy14/autoCompare/master/DiffSource.ps1'|Invoke-Expression
+        
         # 處理編碼
         $Enc1 = if ($EncodingLeftPath) { $EncodingLeftPath } elseif($Encoding) { $Encoding } else { $null }
         $Enc2 = if ($EncodingRightPath) { $EncodingRightPath } elseif($Encoding) { $Encoding } else { $null }
+        
         # 計時開始
         $StWh = New-Object System.Diagnostics.Stopwatch; $StWh.Start()
+        $StWh2 = New-Object System.Diagnostics.Stopwatch; $StWh2.Start()
         Write-Host "Compare start... " -NoNewline
     }
     
     process {
         # 讀取檔案
+        $left  = ReadContent $LeftPath $Enc1 
+        $right = ReadContent $RightPath $Enc2
+        
+        # 選中特定字段
         if ($Fields) {
-            $left  = ReadContent $LeftPath $Enc1  |ConvertFrom-Csv
-            $right = ReadContent $RightPath $Enc2 |ConvertFrom-Csv
-        } else {
-            $left  = ReadContent $LeftPath $Enc1
-            $right = ReadContent $RightPath $Enc2
-        }
+            $left  = $left  |ConvertFrom-Csv
+            $right = $right |ConvertFrom-Csv
+        }; $StWh.Stop()
+        
         # 比較差異
         $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
     }
     
     end {
         # 計時結束
-        $StWh.Stop()
+        $StWh2.Stop()
         $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
-        Write-Host "Finish. [$Time]"
+        $Time2 = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh2.ElapsedMilliseconds)
+        Write-Host "Finish." -NoNewline
+        Write-Host " [Total: $Time2]" -NoNewline
+        Write-Host " (ReadFile: $Time)" -ForegroundColor DarkGray
+        
+        
         # 計算差異報告
-        $leftDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '<=' }).Count
+        $leftDiff  = ($comparisonResult | Where-Object { $_.SideIndicator -eq '<=' }).Count
         $rightDiff = ($comparisonResult | Where-Object { $_.SideIndicator -eq '=>' }).Count
-        $total = $leftDiff + $rightDiff
-        $similar = $left.Count - $leftDiff
+        $totalDiff = $leftDiff + $rightDiff
+        $similar   = $left.Count - $leftDiff
+        
+        # 自訂顯示屬性
+        $displayProperties = 'Similar', 'LeftDiff', 'RightDiff', 'TotalDiff'
+        $defaultDisplaySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet', [string[]]($displayProperties))
+        $PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplaySet)
+        
         # 建立並輸出報告物件
-        [PSCustomObject]@{
+        [PSCustomObject] @{
+            Similar   = $similar
             LeftDiff  = $leftDiff
             RightDiff = $rightDiff
-            TotalDiff = $total
-            Similar   = $similar
-            Detail    = $comparisonResult
-        }
+            TotalDiff = $totalDiff
+            Detail   = $comparisonResult
+        } |Add-Member MemberSet PSStandardMembers $PSStandardMembers -PassThru
     }
 } # Compare-Csv '.\test\left.csv' '.\test\right.csv'
 # Compare-Csv '.\test\left.csv' '.\test\right.csv' -Fields "名前","職業" -Encoding UTF8
