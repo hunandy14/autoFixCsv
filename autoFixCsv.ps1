@@ -539,7 +539,7 @@ function Compare-Csv{
         } else {
             $left  = ReadContent $LeftPath $Enc1 
             $right = ReadContent $RightPath $Enc2
-        }; $StWh.Stop()
+        }; $StWh2.Stop()
         
         # 比較差異
         $comparisonResult = Compare-Object $left $right -Property $Fields -SyncWindow:$SyncWindow
@@ -547,12 +547,12 @@ function Compare-Csv{
     
     end {
         # 計時結束
-        $StWh2.Stop()
+        $StWh.Stop()
         $Time = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh.ElapsedMilliseconds)
         $Time2 = "{0:hh\:mm\:ss\.fff}" -f [timespan]::FromMilliseconds($StWh2.ElapsedMilliseconds)
         Write-Host "Finish." -NoNewline
-        Write-Host " [Total: $Time2]" -NoNewline
-        Write-Host " (ReadFile: $Time)" -ForegroundColor DarkGray
+        Write-Host " [Total: $Time]" -NoNewline
+        Write-Host " (ReadFile: $Time2)" -ForegroundColor DarkGray
         
         
         # 計算差異報告
@@ -562,17 +562,21 @@ function Compare-Csv{
         $similar   = $left.Count - $leftDiff
         
         # 自訂顯示屬性
-        $displayProperties = 'Similar', 'LeftDiff', 'RightDiff', 'TotalDiff'
+        $displayProperties = 'LeftPath', 'RightPath', 'Fields', 'Similar', 'LeftDiff', 'RightDiff', 'TotalDiff', 'Time'
         $defaultDisplaySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet', [string[]]($displayProperties))
         $PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplaySet)
         
         # 建立並輸出報告物件
         [PSCustomObject] @{
+            LeftPath  = $LeftPath
+            RightPath = $RightPath
+            Fields    = $Fields
             Similar   = $similar
             LeftDiff  = $leftDiff
             RightDiff = $rightDiff
             TotalDiff = $totalDiff
-            Detail   = $comparisonResult
+            Detail    = $comparisonResult
+            Time      = $Time
         } |Add-Member MemberSet PSStandardMembers $PSStandardMembers -PassThru
     }
 } # Compare-Csv '.\test\left.csv' '.\test\right.csv'
